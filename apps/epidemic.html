@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  <script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"></script>
+  <script type="module">
+import {makeMain, Library} from "../src/framework.js";
+
+import {epidemic} from "../examples/epidemic.js";
+let library = new Library();
+library.addLibrary("epidemic", epidemic);
+
+window.onload = makeMain("epidemic.beEpidemic", {autoSleep: false, tps: 20, appId: "io.croquet.vdom.epidemic"}, library, null);
+  </script>
+</head>
+  <body style="touch-action: none">
+    <div id="croquet-root" style="width: 100%; height: 100%"></div>
+  </body>
+</html>

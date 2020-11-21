@@ -1,0 +1,20 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  <script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"></script>
+  <script type="module">
+import {makeMain, Library} from "../src/framework.js";
+
+import {pdf} from "../examples/pdf.js";
+import {widgets} from "../widgets/widgets.js";
+let library = new Library();
+library.addLibrary("pdf", pdf);
+library.addLibrary("widgets", widgets);
+
+window.onload = makeMain("pdf.bePDF", {autoSleep: false, appId: "io.croquet.vdom.pdf"}, library, null);
+  </script>
+</head>
+  <body style="touch-action: none">
+    <div id="croquet-root" style="width: 100%; height: 100%"></div>
+  </body>
+</html>

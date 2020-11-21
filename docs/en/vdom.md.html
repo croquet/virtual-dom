@@ -1,0 +1,543 @@
+<meta charset="utf-8">
+**The Croquet Virtual DOM Framework**
+  Last Modified: 2020-08-10
+
+# Introduction
+
+The framework uses Croquet for the network communication part and the UI part is based on the document object model of the web browser.
+
+## The Software Architecture of Croquet
+Applications written using Croquet have a clear separation of "model" and "view" and should be written with this in mind. As in common usage, the model refers to the logic part of the application. However, in the case of Croquet, it is more strictly expected to satisfy the constraint that "when a model is in a state S and receives a message M, the state S' after processing the message will be the same state that can be reliably reproduced from S and M, no matter what computer the model is running on."
+
+In order to satisfy this restriction there are some innovations, such as patching `Math.random()`, so that developers can write, in a natural way, "message handlers" that specify the processing for each message of a given type.
+
+The view mediates between such a model and the user. It displays the state of the model, and when a user performs any input action the view sends a message to the equivalent model for all users in the session, so that the model will change to the same new state for all users.
+
+The model is expected to be in the same state, but the views may be different for each client, for example because of differences in screen size, or because an operation that a user is doing may be visible in the first instance only for that user, before being sent to the model. The code describing the behavior of the view is allowed to read out the state of the model. Using an analogy with network programming in the server-client model, the view's code is the client program, but it is like being able to read out the state of the server directly from that program. This also contributes to the descriptiveness of Croquet.
+
+In other words, we follow the principle that "common information among clients should be stored in the model and other information should be stored in the view".
+
+## Virtual DOM
+
+Although it is not impossible to build an application with the basic Croquet mechanisms described above, constructing a view using the Document Object Model (DOM) provided by the browser involves a laborious process of repeatedly writing trivial pieces of code. In a nutshell, given that the information held by the DOM elements used to display on the screen is also, in most cases, what needs to be shared among participating clients, we can reduce coding effort by keeping the DOM information used by the view in the model as virtual DOM elements, so that the handlers for user operations can be written just once in the model, and the system can automatically generate and update the actual DOM elements.
+
+The Croquet Virtual DOM Framework is implemented based on this perspective.
+
+## How Behaviors are Described
+
+Applications are defined not simply as state, but also in terms of the "behaviors" that change that state.  In Croquet's Virtual DOM Framework, the basic idea is to treat code as data, with users able to change applications' behaviors with code alterations at runtime. This shared authoring environment can also be disabled if no code changes are needed. In any case, the code can also be treated as data, which contributes to the simplicity of implementation.
+
+As shown in the example below, in this framework behaviors are written in accordance with certain conventions. Although the grammar includes the "class" keyword, these are actually class extensions, inspired by the language features known as traits and expanders. Simply put, they are collections of methods that do not change the virtual DOM element itself but act as external parts, adding behaviors that can be invoked using a special `call()` syntax.
+
+## Concepts, Terminology
+
+### Model
+As described above, a model is an object that is used for defining the logic part of an application. It causes state changes by receiving external messages. The word model may refer to the entire logic of the application, but when described as `Model`, it may also refer to individual instances of classes that inherit from the `Croquet.Model` class. In other words, it is normal for the logic part of an application to be made up of multiple `Model` classes, and to use multiple instances of those classes.
+
+### View
+The view displays the state of the model on the screen, and also accepts input from the user and sends messages to the model. As with `Model`, when referring to `View` this can mean multiple instances of classes that each inherit from `Croquet.View`.
+
+### Client
+Basically, a browser-based Croquet application. The client participates in a certain Croquet session. The clients participating in that session all share a model with identical state.
+
+### Reflector
+A server on the network that is responsible for delivering messages from a view to all the clients participating in the session.
+
+### Virtual DOM Element
+In the Croquet Virtual DOM Framework, instances of the `Element` class are created in the model and mimic the interface of a real DOM. For the part of the application that must be the same across multiple clients, consistency is maintained using updates to the properties of these elements.
+
+### Virtual DOM View
+When an instance of `Element` is displayed on the screen, a view object called `ElementView` is created. `ElementView` holds a reference to an actual DOM element, and when its corresponding `Element` changes, the `ElementView` is responsible for making the DOM element reflect the change. Also, when an event fires in the actual DOM element, the `ElementView` sends it to the model as a Croquet message.
+
+### Actual DOM Element
+What a virtual DOM view holds onto, and what the browser actually displays on the screen.
+
+### Virtul DOM Element Reference
+A reference (pointer) to a Virtual DOM Element is internally represented by a data type called `ElementRef`. ElementRef introduces a simple indirection to accommodate a slippage between the view and the model.
+
+For example, imagine that a group of users are using a graphical collaborative application. And suppose that a user sees an element on screen and tries to move the element. By the time the request arrives to the model, the object may have been already deleted by another user. Such model code needs to look up the actual object from the information sent from the view. A ElementRef serves for this need.
+
+### expander
+Behavior defined as a set of methods that can be "installed" in `Element` or `ElementView`. These are JavaScript classes written according to specific conventions.
+
+# Example 1 (Counter)
+
+Let's start with a simple example.
+
+First of all, I would like to refer to `examples/counter.js` and `counter.html` in the `app/` directory. As mentioned above, code is also data, but at the moment, it is more efficient to use a normal code editor when writing code. However, as you can see in `counter.js`, you need to write your code in accordance with certain conventions.
+
+## Invocation
+
+Run `server.py` in the top directory from a terminal using Python2 or Python3.
+~~~~~~~~
+# python server.py &
+~~~~~~~~
+Since we are using 8000 as the default port number, you can access:
+~~~~~~~~
+http://localhost:8000/apps/counter.html
+~~~~~~~~
+If the fourth argument of `makeMain()` is true, a session hash prefixed by `#` is attached to the URL. You can enter the same session from another browser by accessing this extended URL.
+
+## File Organization
+
+Here we refer to a file like `counter.js` as a library file. A library is configured as follows:
+
+```text
+    &lt;class definition&gt;
+    &lt;class definition&gt;...
+
+    &lt;function definition&gt;...
+
+    &lt;export statement with "expanders" and "functions" properties&gt;
+```
+
+In `counter.js` there is only one class definition: `Counter`.
+
+~~~~~~~~~~~~~~~~~~~~~~~ JavaScript
+class Counter {
+    init() {
+        this.addEventListener("click", "Counter.reset");
+        if (this._get("count") === undefined) {
+            this._set("count", 0);
+            this.future(1000).call("Counter", "next");
+        }
+    }
+
+    next() {
+        let c = this._get("count") + 1;
+        this._set("count", c);
+        this.value = "" + c;
+        this.future(1000).call("Counter", "next");
+    }
+
+    reset() {
+        let c = 0;
+        this._set("count", c);
+        this.value = "" + c;
+    }
+}
+
+function beCounter(parent, json) {
+    let text = parent.createElement("TextElement");
+    text.style.setProperty("width", "200px");
+    text.style.setProperty("height", "50px");
+    parent.appendChild(text);
+    text.setCode(parent.getLibrary("counter.Counter"));
+}
+
+export const counter = {
+    expanders: [Counter],
+    functions: [beCounter]
+};
+~~~~~~~~~~~~~~~~~~~~~~~
+
+I'll explain it line by line below.
+
+~~~~~~~~
+class Counter {
+~~~~~~~~
+This defines an expander named `Counter`. Code written in a library file is processed as string data, so it is not allowed to refer to "free variables" from outside the expander. However, if you need access to other expanders' code, use the initialization-function `library` argument as described below.
+
+~~~~~~~~
+  init() {
+~~~~~~~~
+`init()` is the name of a special method which is executed automatically when the expander is "installed" on an element. (However, the expander may be edited in the authoring tool, and in that case, `init()` is called each time it is edited).
+
+~~~~~~~~
+        this.addEventListener("click", "Counter.reset");
+~~~~~~~~
+This adds an event handler for when a DOM click event occurs on the virtual DOM element where this expander is installed. Internally, a click handler is added to the actual DOM element, and when the user clicks, it is delivered to this expander. `"Counter.reset"` means the `reset` method of the expander installed under the name `Counter`, which will be called when the event occurs.
+
+The `this` in the method refers not to the expander but to the DOM element where it is installed.
+
+~~~~~~~~
+        if (this._get("count") === undefined) {
+            this._set("count", 0);
+        }
+~~~~~~~~
+As described above, `init()` may be called multiple times for already existing elements. Therefore, when you initialize a variable in `init()` and you want to keep the value even if the code changes a little while the same element survives, you should initialize it only when the value is not yet set, like this. Incidentally, `addEventListener` is registered only once even if you call it multiple times. Here, the property `count` is defined for the virtual DOM element.
+
+`_get()` and `_set()` are methods to read and write the properties of a virtual DOM element. A virtual DOM element can hold only JSONizable values. Were they made readable and writable using simple dot notation, that would invite inadvertently storing inappropriate values, such as functions that have free variables. Instead, one must use the verbose `_get()` and `_set()` notation, chosen so as not to clash with internal property names, and mmust keep in mind that only JSONizable values can be stored.
+
+~~~~~~~~
+            this.future(1000).call("Counter", "next");
+        }
+~~~~~~~~
+
+`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 milliseconds.
+
+In this case, the method is `call()`, meaning that the `next` method of the expander installed with the name `Counter` will be invoked. In the near future it is planned to make it possible to write just `this.future(1000).next()`, implicitly specifying that the method is on the same expander, as with other calls to expander methods.
+
+~~~~~~~~
+    next() {
+        let c = this._get("count") + 1;
+        this._set("count", c);
+        this.value = "" + c;
+        this.future(1000).call("Counter", "next");
+    }
+~~~~~~~~
+As shown above, `next()` is executed 1000 milliseconds after the first call to `init()`. After updating the `count` property with `_get()` and `_set()`, a stringified version is written to the special property `this.value` which is compatible with a DOM text element. (The fact that `this` is a text element is specified by `beCounter()`, shown below).
+
+The last line of `next` calls `next()` itself again. Like `requestAnimationFrame()` or setTimeout, this is a standard tactic for performing processing at a regular interval.
+
+~~~~~~~~
+    reset() {
+        let c = 0;
+        this._set("count", c);
+        this.value = "" + c;
+    }
+~~~~~~~~
+This is the method called when a click event occurs, as specified by `init()`. The `count` property is set to 0, and the `value` of the `text` element is set to "0".
+
+~~~~~~~~
+function beCounter(parent, json) {
+~~~~~~~~
+This is the function to create the virtual DOM element used by the application. As an image, you can think of it as embodying the manual work of interactively creating elements and setting styles and properties in an interface builder.
+
+`parent` is a virtual DOM element which is to be the parent of this "application". You can ignore `json` for the time being.
+
+~~~~~~~~
+    let text = parent.createElement("TextElement");
+~~~~~~~~
+Virtual DOM elements are created using the `createElement()` of some arbitrary virtual DOM element, instead of `document.createElement()`. The basic design policy is to use `div` elements for most of the processes, so that as far as possible "everything is made of the same kind of object". However, since elements that provide some special features cannot be replaced by `div`, there are text elements, video elements, iframe elements, and canvas elements, which can be created by specifying a type in the argument.
+
+In this example, we are creating a virtual text element to display the string (though in this case there would be no problem with using a `div`, since this text does not have to be collaboratively editable).
+
+~~~~~~~~
+    text.style.setProperty("width", "200px");
+    text.style.setProperty("height", "50px");
+~~~~~~~~
+A virtual DOM element has basic properties such as style and classList, which can be used to set the CSS style. How to set CSS classes will be explained later.
+
+~~~~~~~~
+    parent.appendChild(text);
+~~~~~~~~
+Use `appendChild()` to add elements created in this way to the DOM tree.
+
+~~~~~~~~
+    text.setCode(parent.getLibrary("counter.Counter"));
+}
+~~~~~~~~
+Then, we use the method `setCode` to set the behavior of the element, specifying the expander called "Counter" within the "counter" library registered in the library created in the HTML file.
+
+~~~~~~~~
+export const counter = {
+    expanders: [Counter],
+    functions: [beCounter]
+};
+~~~~~~~~
+A library file like `counter.js` exports objects with properties `expanders` and `functions`. The above `parent.getLibrary("counter.Counter")` means to get the `Counter` from the library exported as `counter`. (You can think of `expanders` and `functions` as being combined into one object after some other internal processing.)
+
+The counter.html that calls it looks like this:
+~~~~~~~~
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
+  &lt;script type="module"&gt;
+import {makeMain, Library} from "./src/framework.js";
+
+import {counter} from "./examples/counter.js";
+let library = new Library();
+library.addLibrary("counter", counter);
+
+window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
+  &lt;/script&gt;
+&lt;/head&gt;
+  &lt;body style="touch-action: none"&gt;
+    &lt;div id="croquet-root" style="width: 100%; height: 100%"&gt;&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+~~~~~~~~
+
+Picking out some details:
+
+~~~~~~~~
+  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
+~~~~~~~~
+This loads the Croquet library copied into the croquet directory. Alternatively, you can load it from `https://croquet.io/sdk/croquet-latest.min.js`.
+
+~~~~~~~~
+import {makeMain, Library} from "./src/framework.js";
+
+import {counter} from "./examples/counter.js";
+let library = new Library();
+library.addLibrary("counter", counter);
+
+window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
+~~~~~~~~
+Importing `makeMain` from main.js and `Library` from library.js is the same for any application as long as it follows this pattern. Import your own library, `counter.js`, and register it to an instance of `Library`.
+
+~~~~~~~~
+window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
+~~~~~~~~
+creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last two arguments are flags specifying, respectively, whether the page access should automatically create a new shared session and add a distinguishing hash to the URL, and whether or not to launch the authoring tool at the same time.
+
+# Development and Debugging of a New Application
+
+At this point we are deliberately avoiding packaging the framework part, instead pursuing development in which you can just edit a file and reload the page to try it out immediately. To write a new application, you can create a new file like `counter.js` above, and also make your own copy of `counter.html` to call it.
+
+## `isLocal` flag
+Much of application development is about making visual adjustments and other model behavior checks, with no need to test out the sharing aspects, so working with just one client is enough. To simplify such a development cycle, if the query parameter `?isLocal` is specified in the URL, the application will be executed with the reflector's role replaced by a local emulation. In the case of `counter.html`:
+
+~~~~~~~~
+http://localhost:8000/counter.html?isLocal
+~~~~~~~~
+will allow the application's code to be run exactly as is, but without the need for a network.
+
+## debugger
+At present, there is a problem in that code written as an expander goes through a string representation before being evaluated and executed, which means that a browser debugger cannot display line numbers. By inserting a `debugger` statement the debugger can be started, or if output is generated using `console.log` then clicking on the reported line numbers in the output allows reference to the code in a "VM..." pseudo file, and the insertion of breakpoints. In the future we would like to improve the situation, such as by allowing expander code to be inserted without going through a string representation whenever possible.
+
+# Example 2 (Drawing)
+
+As an example of an application in which each client has a different view, I'll now introduce a simple drawing program. This example has multiple expanders in one library file, and also adds code to the view.
+
+~~~~~~~~
+class DrawModel {
+    init() {
+        this._set("color", "black");
+        this.subscribe(this.id, "line", "DrawModel.line");
+        this.subscribe(this.sessionId, "color", "DrawModel.color");
+    }
+~~~~~~~~
+This model has `color` and `lines` (described below) as state properties, and calls `subscribe()` to communicate with the view. The first and second arguments of `subscribe()` are the scope and the message name, which together constitute a key agreed among the objects interested in these messages. The third argument of `subscribe()` defines the method to be invoked when a message arrives, specified by joining the expander name and method name with a dot.
+
+In the case of "line" messages, we want only the view object that knows about this particular model to receive "line" messages from it. This is achieved by using the model's `this.id` as the scope; in effect, this declares that "only this model/view pair is interested in this message". The "color" message, by contrast, comes from a distinct virtual DOM element, and is to be received by all objects used in the session. Therefore as scope we use `this.sessionId`, a shared value that all the session's objects have access to.
+
+~~~~~~~~
+    line(data) {
+        if (!this._get("lines")) {
+            this._set("lines", []);
+        }
+~~~~~~~~
+
+The "line" message is sent from the view to the model when the user makes a mouse movement on the screen to draw a line. A case to watch out for in Croquet is when a new client joins after other people have already performed some actions, such as - in this application - drawing some lines. This requires that the model hold information about past line segments, so here it is stored in a property called "lines". The property could be created in `init()`, but let's try creating it when the information for the first line segment arrives.
+
+~~~~~~~~
+        let line = {...data, color: this._get("color")};
+        this._get("lines").push(line);
+~~~~~~~~
+The object `{command: "line", from: {x,y}, to: {x,y}}` is sent as `data`. We augment it with `color`, and add the result to the "lines" property.
+
+~~~~~~~~
+  this.publish(this.id, "drawLine", line);
+    }
+~~~~~~~~
+And now we send this object in a `drawLine` message, this time from the model to the view. It is important to remember that only JSONizable objects can be sent as messages.
+
+~~~~~~~~
+    color(color) {
+        this._set("color", color);
+    }
+~~~~~~~~
+When a "color" message is received, its value is stored in a property ready for the next "line" message.
+
+~~~~~~~~
+class DrawView {
+    init() {
+        this.addEventListener("mousedown", "DrawView.mouseDown");
+~~~~~~~~
+`DrawView` is an expander installed in the `View` that corresponds to the above `DrawModel`. A `View` expander can also register event handlers for DOM events using `addEventListener`.
+
+~~~~~~~~
+        this.subscribe(this.model.id, "drawLine", "DrawView.drawLine");
+~~~~~~~~
+In the last line of `DrawModel.line()`, a message was sent using `this.publish(this.id, "drawLine", line);` with the model's `id` as the scope and "drawLine" as the name.
+
+An `ElementView` stores the corresponding `Element` object itself as `this.model`, and can read values (including `id`) from the model freely. To receive the "drawLine" messages, the `DrawView`'s `subscribe` specifies the same scope and the same name. This is how the sending and receiving of the "drawLine" message for a particular `DrawModel`/`DrawView` pair is set up.
+
+~~~~~~~~
+        this.initDraw();
+    }
+~~~~~~~~
+This calls the method `initDraw()`, which is defined by the same expander.
+
+~~~~~~~~
+    initDraw() {
+        if (!this.model._get("lines")) {return;}
+        this.model._get("lines").forEach(data => {
+            this.drawLine(data);
+        });
+    }
+~~~~~~~~
+The role of `initDraw()` is to make sure that the screen of a participant joining a session that was already running shows correctly any lines that have already been drawn.
+
+Since reading values from model objects is allowed, the virtual DOM view accesses the "lines" property from the object stored as `this.model`. If a value exists for the "lines" property, each line is drawn using `drawLine()` as if the participant had been in the session since the start.
+
+`drawLine()` is an expander method, but remember that a method within the same expander can be called using `this.`. The call `this.drawLine(data)` is equivalent to `this.call("DrawView", "drawLine", data)`, because the call itself appears in a `DrawView` expander method.
+
+~~~~~~~~
+    mouseDown(evt) {
+~~~~~~~~
+This is the method registered in `init()` as a DOM event handler.
+
+~~~~~~~~
+        let mouseMove = (evt) => {
+~~~~~~~~
+Like drawing, we want to track mousemove events only between the mouse button being pressed and being released, and during that time we need to handle them even if the mouse pointer leaves the DOM element's display area, and to handle a mouseup even if it occurs outside the area. Therefore, mousemove and mouseup handlers are set up afresh on mousedown and released on mouseup. This `mouseMove` function is designed for that purpose.
+
+~~~~~~~~
+            if (this.lastPoint) {
+                let p = {x: evt.offsetX, y: evt.offsetY};
+                this.publish(this.model.id, "line", {command: "line", from: this.lastPoint, to: p});
+                this.lastPoint = p;
+            }
+~~~~~~~~
+In this `mouseMove`, if the view finds a property `lastPoint` it publishes a message "line" so as to draw a line from `lastPoint` to the current mousemove event's `(offsetX, offsetY)`. The scope is `this.model.id`, so as usual it will only be delivered to objects that specify the same scope. Finally, `lastPoint` is updated to the new pointer position.
+
+In the case of views, you can store arbitrary objects in properties, using the standard `this.propertyname` syntax. However, accidentally using a property name that is also used by the system will cause problems, so we may take some action on this in the future.
+
+~~~~~~~~
+        let mouseUp = (evt) => {
+            document.removeEventListener("mousemove", this.mousemove);
+            document.removeEventListener("mouseup", this.mouseup);
+            this.lastPoint = null;
+        };
+~~~~~~~~
+In `mouseUp`, the handler temporarily added to `document` is removed and `lastPoint` is also cleared.
+
+~~~~~~~~
+        this.mousemove = mouseMove.bind(this);
+        this.mouseup = mouseUp.bind(this);
+
+        let offsetX = evt.offsetX;
+        let offsetY = evt.offsetY;
+        this.lastPoint = {x: offsetX, y: offsetY};
+
+        document.addEventListener("mousemove", this.mousemove);
+        document.addEventListener("mouseup", this.mouseup);
+~~~~~~~~
+Still in mouseDown, we bind the above two functions to `this` and store them in properties, and also set `lastPoint` to the place where the mousedown happened. In addition, we register those functions as document-level event handlers until the mouseup occurs.
+
+What should be noted here is the actual type of events being sent. The events delivered through the virtual DOM system are "cooked", with objects containing only somewhat abstract values in a way that absorbs client differences as much as possible, whereas handlers registered directly with real DOM elements, such as `mouseMove` and `mouseUp` here, receive the original DOM events. Either the program should use values chosen specifically to avoid inconsistencies, such as always using `offsetX`, or call `this.cookEvent()` to convert an event to a virtual event.
+
+~~~~~~~~
+    drawLine(data) {
+        let ctx = this.dom.getContext("2d");
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = data.color;
+        ctx.beginPath();
+        ctx.moveTo(data.from.x, data.from.y);
+        ctx.lineTo(data.to.x, data.to.y);
+        ctx.stroke();
+    }
+~~~~~~~~
+Using the data in a "drawLine" message sent from the model, draw on the actual DOM element stored in `this.dom`.
+
+~~~~~~~~
+class Color {
+    init() {
+        this.addEventListener("click", "Color.color");
+        this.style.setProperty("background-color", "black");
+    }
+~~~~~~~~
+This file defines another expander, called `Color`. It is installed in a certain model.
+
+In `init()`, the method `color` of the expander is specified to be called when a click event occurs, and the virtual-DOM style property `background-color` is set to `black`.
+
+~~~~~~~~
+    randomColor() {
+        let h = Math.floor(Math.random() * 256);
+        let s = "100%";
+        let l = "80%";
+        return `hsl(${h}, ${s}, ${l})`;
+    }
+~~~~~~~~
+`randomColor()` is used to get a random color from a hue ring. Because this `Math.random()` is executed as model code, it is guaranteed that however many times clients call it, they will all be obtaining exactly the same sequence of values.
+
+~~~~~~~~
+    color() {
+        let color = this.randomColor();
+        this.style.setProperty("background-color", color);
+        this.publish(this.sessionId, "color", color);
+    }
+~~~~~~~~
+The `color` method is executed when this virtual DOM element is clicked. `this.randomColor()` calls the `randomColor()` method defined by the same expander, and the `background-color` that was set to `black` in `init()` is replaced with the new color. The new color is then also published in a "color" message, using `this.sessionId` as the scope.
+
+`sessionId` is shared across the whole application, so any object in the application can subscribe to messages that have this scope. As shown above, in this example all `DrawModel`s subscribe to these "color" messages, and respond by changing their "color" property.
+
+~~~~~~~~
+function beDrawing(parent, json) {
+    let top = parent.createElement();
+    let canvas = parent.createElement("CanvasElement");
+
+    canvas.setCode(parent.getLibrary("drawing.DrawModel"));
+    canvas.setViewCode(parent.getLibrary("drawing.DrawView"));
+
+    let color = parent.createElement();
+    color.setCode(parent.getLibrary("drawing.Color"));
+~~~~~~~~
+
+`beDrawing`, like the earlier `beCounter`, can be thought of as code that simplifies the process of assembling the DOM tree interactively.
+
+The `canvas` variable is assigned a `CanvasElement` value, and `color` a `div` element. The `CanvasElement`'s model code is set to `DrawModel` code obtained from `library`, and its view code to the library's `DrawView`. Because `color` is a common behavior across all clients, it is only given model code.
+
+~~~~~~~~
+    color.style.setProperty("width", "60px");
+    color.style.setProperty("height", "60px");
+    color.style.setProperty("border-radius", "50%");
+~~~~~~~~
+The styles of individual elements can also be set in this way.
+
+~~~~~~~~
+    color.domId = "color";
+    color.setStyleClasses(`
+#color:hover {
+    border: 2px dotted white;
+}
+
+#color {
+    border: 2px solid white;
+}`);
+~~~~~~~~
+In addition, you can use a special method called `setStyleClasses` to pass as a string a CSS block with CSS selectors. The property `domId`, renamed because the property `id` is already reserved by Croquet, sets the DOM `id` property. The CSS block specifies the style for that id, with and without the `:hover` pseudo-class.
+
+~~~~~~~~
+    top.style.setProperty("display", "flex");
+    top.style.setProperty("width", "550px");
+
+    top.appendChild(canvas);
+    top.appendChild(color);
+    parent.appendChild(top);
+    return parent;
+~~~~~~~~
+These elements are made into a tree structure with `appendChild()` and added to `parent`.
+
+~~~~~~~~
+export const drawing = {
+    expanders: [DrawModel, DrawView, Color],
+    functions: [beDrawing]
+};
+~~~~~~~~
+Everything is registered in the library `drawing`. `beDrawing()` will be called through `makeMain` in drawing.html.
+
+# Example 3 (Video Chat)
+
+In `apps/video-chat.html` and `examples/video-chat.js` you can find an example of video chat using SkyWay, a service provided by NTT.
+The file `skyway/skyway-latest.js` is a SkyWay library.
+
+To run this example, get an API key from [SkyWay](https://webrtc.ecl.ntt.com/developer.html) and create a file called `skyway/key.js` using the actual key you obtained.
+
+~~~~~~~~
+export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
+~~~~~~~~
+
+In the video chat example, it's important to note that _almost nothing shown on the screen is being shared through Croquet_. The connection status, layout of the individual videos, etc. are also different for each client. That's why `examples/video-chat.js` only defines a view expander which, when notification of a new participant arrives from SkyWay, creates a new actual video element and sets its `srcObject` property.
+
+Another thing to note is that you cannot do JavaScript asynchronous processing in the model, because it would cause the timing of model execution to differ between participating clients. In this example, the SkyWay library and `key.js` are loaded with dynamic import, and even if such values are to be used purely by model code, it is essential that they be loaded by view-side code, and then sent to the model using messages.
+
+# Example 4 (Text Chat)
+In `apps/text-chat.html` and `examples/text-chat.js` you can find an example of a simple text chat. A notable feature introduced in the example is a way to specify the CSS class strings to control the appearance of the application. The initialization function `beChat` calls the `setStyleClasses()` method on `chat` element. The selectors matches with the `domId` property of the virtual DOM element that will become the `id` property of the actual DOM element, and the CSS class names added by `classList.add()`.
+
+The `setStyleClasses()` method specifies a CSS string that persists until as long as the element stays in the DOM scene tree. For a certain kind of applications, such CSS strings can be attached to different elements instead of having one large string for the top-level element. In this particular case, however, where many similar elements with the same class will be added and removed from the DOM scene tree, it is more concise to just have a single description at the top level.
+
+<!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
+
+<script src="https://croquet.io/sdk/croquet-latest.min.js"></script>
+<script src="../turner.js"></script>
+<script type="text/javascript">
+if (window.location.search !== "") {
+    Croquet.Session.join(window.location.href, SimplePageModel, SimplePageView, {tps: 0})
+    	.then((session) => session.view.initCroquetMessenger());
+}
+</script>
