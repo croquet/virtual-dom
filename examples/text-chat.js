@@ -535,8 +535,8 @@ body {
 }
 
 #textOutHolder {
-    border: 1px solid gray;
-    overflow: scroll;
+    // border: 1px solid gray;
+    overflow-y: scroll;
     flex-grow: 2;
     padding: 10px;
 }
@@ -562,8 +562,8 @@ body {
     font-family: Poppins;
     resize: none;
     border: 2px solid rgba(255,255,255,0.6);
-    border-radius: 9px;
-    background-color: #E4EBEC;
+    // border-radius: 9px;
+    background-color: #E6E6E6;
     box-shadow: inset -2px -2px 2px 0 rgba(240,240,240.0.3), inset 2px 2px 2px 0 rgba(0,35,46,0.08);
 }
 

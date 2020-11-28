@@ -73,8 +73,8 @@ class MiniBrowser {
 
             this._set("_useSetExtent", ["MiniBrowser", "setExtent"]);
             this._set("menuItems", [
-                {label: "Open in a New Tab", traits: null, method: "openTab"}, // a method of FrameMenuView
-                {label: "Be transparent", traits: null, method: "beTransparent"}, // ditto
+                {value: "OpenInANewTab", label: "Open in a New Tab", traits: null, method: "openTab"}, // a method of FrameMenuView
+                {value: "BeTransparent", label: "Be transparent", traits: null, method: "beTransparent", asset: "make-trans"}, // ditto
             ]);
         }
 
@@ -92,7 +92,7 @@ class MiniBrowser {
 
         let address = this.getAddressBar();
         if (address) {
-            address.setWidth(width * 0.6);
+            address.setWidth(width - 112); // @@ hack - we'd like to let the field size itself, but text element seems to need an absolute width value
         }
     }
 
@@ -123,8 +123,10 @@ class MiniBrowser {
                 let index = menuItems.findIndex(m => m.method === "beTransparent" || m.method === "beOpaque");
                 return [
                     ...menuItems.slice(0, index),
-                    {label: flag ? "Be opaque" : "Be transparent",
-                     method: flag ? "beOpaque" : "beTransparent"
+                    {value: flag ? "BeOpaque" : "BeTransparent",
+                     label: flag ? "Be opaque" : "Be transparent",
+                     method: flag ? "beOpaque" : "beTransparent",
+                     asset: flag ? "make-opaque" : "make-trans"
                     },
                     ...menuItems.slice(index + 1)];
             }
@@ -144,7 +146,7 @@ class MiniBrowser {
     }
 
     url(url, retry) {
-        if (!url) {return;}
+        if (!url || !(url.trim())) {return;}
         let iframe = this.querySelector("#iframe");
         if (iframe) {
             let oldUrl = iframe._get("src");
@@ -287,7 +289,7 @@ class MiniBrowserView {
 class QRView {
     init() {
         this.addEventListener("pointerup", "QRView.pointerUp");
-        this.dom.draggable = true;
+        // this.dom.draggable = true;
         this.dom.addEventListener("dragstart", evt => this.startDrag(evt)); // we need the raw DOM event to work with
         this.dom.addEventListener("dragend", evt => this.endDrag(evt)); // we need the raw DOM event to work with
         this.dom.addEventListener("pointerdown", (evt) => this.pointerDown(evt));

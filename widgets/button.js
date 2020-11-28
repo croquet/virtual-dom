@@ -133,11 +133,11 @@ export class ButtonView {
 
         this.dom.addEventListener("pointerdown", this.pressingDownHandler);
 
-        this.addEventListener("pointerup", this.notPressingDownHandler);
-        this.addEventListener("pointercancel", this.notPressingDownHandler);
-        this.addEventListener("pointerleave", this.notPressingDownHandler);
+        this.dom.addEventListener("pointerup", this.notPressingDownHandler);
+        this.dom.addEventListener("pointercancel", this.notPressingDownHandler);
+        this.dom.addEventListener("pointerleave", this.notPressingDownHandler);
 
-        this.dom.addEventListener("pressHold", (evt) => this.pressHold());
+        this.dom.addEventListener("pressHold", (evt) => this.pressHold(evt));
     }
 
     pressingDown(evt) {
@@ -147,9 +147,103 @@ export class ButtonView {
         this.pressed = false;
     }
 
-    notPressingDown(evt) {
+    notPressingDown(_evt) {
         cancelAnimationFrame(this.timerID);
         this.startTime = Number.MAX_VALUE;
+    }
+
+    timer() {
+        let now = Date.now();
+        if ((now - this.startTime) < this.pressHoldDuration) {
+            this.timerID = requestAnimationFrame(() => this.timer());
+        } else {
+            this.held = true;
+            this.dom.dispatchEvent(this.pressHoldEvent);
+        }
+    }
+}
+
+export class DOMButton {
+    constructor(elem, receiver) {
+        this.elem = elem;
+        this.receiver = receiver;
+        this.pressHold = false;
+    }
+
+    enablePressHold(flag) {
+        if (this.pressHold === flag) {return;}
+        this.pressHold = flag;
+
+        if (flag) {
+            this.pressHoldDuration = 400;
+            this.startTime = Number.MAX_VALUE;
+            this.pressHoldEvent = new CustomEvent("pressHold");
+
+            if (this.receiver.pointerEnter) {
+                this.pointerEnterHandler = this.receiver.pointerEnter;
+                this.dom.addEventListener("pointerenter", this.pointerEnterHandler, false);
+            }
+
+            this.pressingDownHandler =
+                this.receiver.pressingDown || ((evt) => this.pressingDown(evt));
+            this.dom.addEventListener("pointerdown", this.pressingDownHandler, false);
+
+            this.pointerUpHandler =
+                this.receiver.pointerUp || ((evt) => this.pointerUp(evt));
+            this.dom.addEventListener("pointerup", this.pointerUpHandler, false);
+
+            this.notPressingDownHandler =
+                this.receiver.notPressingDown || ((evt) => this.notPressingDown(evt));
+            this.dom.addEventListener("pointerleave", this.notPressingDownHandler, false);
+
+            this.pressHoldHandler =
+                this.receiver.pressHold || ((evt) => this.pressHold(evt));
+            this.dom.addEventListener("pressHold", this.pressHoldHandler, false);
+
+            this.held = false;
+            return;
+        }
+        if (this.pointerEnterHandler) {
+            this.dom.removeEventListener("pointerenter", this.pointerEnterHandler, false);
+            delete this.pointerEnterHandler;
+        }
+        if (this.pressingDownHandler) {
+            this.dom.removeEventListener("pointerdown", this.pressingDownHandler, false);
+            delete this.pressingDownHandler;
+        }
+        if (this.pointerUpHandler) {
+            this.dom.removeEventListener("pointerup", this.pointerUpHandler, false);
+            delete this.pointerUpHandler;
+        }
+        if (this.notPressingDownHandler) {
+            this.dom.removeEventListener("pointerleave", this.notPressingDownHandler, false);
+            delete this.notPressingDownHandler;
+        }
+        if (this.pressHoldHandler) {
+            this.dom.removeEventListener("presshold", this.pressHoldHandler, false);
+            delete this.pressHoldHandler;
+        }
+    }
+
+    pressingDown(evt) {
+        if (evt.buttons !== 1) { return; }
+
+        requestAnimationFrame(() => this.timer());
+        this.startTime = Date.now();
+        evt.preventDefault();
+        this.held = false;
+        let rect = this.dom.getBoundingClientRect();
+        this.pressingPosition = { x: rect.right + 10, y: rect.top + 10 };
+    }
+
+    notPressingDown(_evt) {
+        cancelAnimationFrame(this.timerID);
+        this.startTime = Number.MAX_VALUE;
+    }
+
+    pointerUp(evt) {
+        this.notPressingDown(evt);
+        if (!this.held) this.click();
     }
 
     timer() {
@@ -160,5 +254,11 @@ export class ButtonView {
             this.pressed = true;
             this.dom.dispatchEvent(this.pressHoldEvent);
         }
+    }
+
+    click() {
+        if (this.pressHold && this.held) {return;}
+        this.helpd = false;
+        this.receiver.click();
     }
 }

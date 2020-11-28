@@ -17,11 +17,12 @@ limitations under the License.
 import {Button, ButtonView} from "./button.js";
 import {CheckBox} from "./checkbox.js";
 import {Tab} from "./tab.js";
-import {Menu} from "./menu.js";
+import {DOMMenu} from "./menu.js";
 import {WheelFilterView} from "./wheelfilter.js";
 import {GestureFilterView} from "./gesturefilter.js";
 import {PointerDownFilterView} from "./pointerdownfilter.js";
 
 export const widgets = {
-    expanders: [Button, ButtonView, CheckBox, Tab, Menu, WheelFilterView, GestureFilterView, PointerDownFilterView],
+    expanders: [Button, ButtonView, CheckBox, Tab, WheelFilterView, GestureFilterView, PointerDownFilterView],
+    classes: [DOMMenu]
 };

@@ -61,7 +61,7 @@ class PeerView {
         this.addEventListener('pointerleave', "PeerView.pointerLeave");
 
         // now I finally know what was my problem.
-        let scope = this.model.island.id;
+        let scope = this.model.sessionId;
         this.subscribe(scope, "sessionButton", "PeerView.sessionButtonPressed");
         this.subscribe(scope, "audioButton", "PeerView.audioButtonPressed");
         this.subscribe(scope, "videoButton", "PeerView.videoButtonPressed");

@@ -14,44 +14,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class Menu {
-    init()  {
-        this.subscribe(this.id, "clicked", "Menu.clicked");
+export class DOMMenu {
+    makeMenuItem(asset, className, value, label, receiver, menuSelected) {
+        let opt = document.createElement("div");
+
+        if (value === null) {
+            // make it the title
+            opt.classList.add("no-select");
+            opt.classList.add(className + "-title");
+            opt.innerHTML = `<span>${label}</span>`;
+            return opt;
+        }
+
+        let html = "";
+        if (asset && !asset.trim().startsWith("<svg")) {
+            let sectionName = "img-" + asset;
+            html = `<div class="${className}-icon"><svg viewBox="0 0 24 24" class="${className}-icon-svg"><use href="#${sectionName}"></use></svg></div>`;
+        } else if (asset && asset.trim().startsWith("<svg")) {
+            html = `<div class="${className}-icon">${asset}</div>`;
+        }
+        html += `<span class="${className}-label">${label}</span>`;
+        opt.innerHTML = html;
+        opt.classList.add(`${className}-item`);
+        opt.value = value;
+        if (menuSelected) {
+            opt.addEventListener("click", (evt) => menuSelected.call(receiver, evt), true);
+        } else {
+            opt.addEventListener("click", (evt) => console.log(evt), true);
+        }
+        return opt;
     }
 
-    beMenu(evt, names) {
-        this.domId = "owner";
-        this._set("evt", evt);
-        this.style.setProperty("left", evt.clientX + "px");
-        this.style.setProperty("top", evt.clientY + "px");
+    makeMenu(elem, className, triples, receiver, menuSelected) {
+        // triples = [{value, label, asset}]
+        // value is the id of the choice, label is what is shown on screen,
+        // and asset is svg name (for now)
 
-        this.style.setProperty("display", "flex");
-        this.style.setProperty("flex-direction", "column");
-        this.style.setProperty("position", "absolute");
-        this.style.setProperty("background-color", "white");
-        this.style.setProperty("border", "1px solid black");
+        let select = document.createElement("div");
+        select.classList.add(className, "no-select");
 
-        names.forEach(n => {
-            let child = this.createElement();
-            child._set("name", n);
-            child.innerHTML = n;
-            child.setClassList(["no-select"]);
-            child.style.setProperty("width", "fit-content");
-            child.style.setProperty("margin", "4px");
-            child.addEventListener("click", "MenuElement.click");
-            child._set("menu", this.id);
-            child.setCode(`
-class MenuElement {
-  click(evt) {
-    this.publish(this._get("menu"), "clicked", this._get("name"));
-  }
-}`);
-            this.appendChild(child);
+        triples.forEach(({value, label, asset}) => {
+            let opt = this.makeMenuItem(asset, className, value, label, receiver, menuSelected);
+            select.appendChild(opt);
         });
-    }
 
-    clicked(name) {
-        this.publishToAll({name, evt: this._get("evt")});
-        this.remove();
+        elem.classList.add(`${className}-holder`);
+        elem.appendChild(select);
+        return elem;
     }
 }
