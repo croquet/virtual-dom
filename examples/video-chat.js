@@ -32,7 +32,7 @@ class PeerView {
                     let match = reg.exec(href);
                     return match ? decodeURIComponent(match[1]) : this.sessionId;
                 };
-                
+
                 this.sessionName = getHash(window.location.href);
                 resolve(null);
             }
@@ -45,7 +45,7 @@ class PeerView {
                     this.Peer = window.Peer;
                 }).then(() => {
                     if (window.fromLandingPage) {
-                        window.topView.requestInitalization(this, "PeerView", "launchFromLandingPage");
+                        window.topView.requestInitialization(this, "PeerView", "launchFromLandingPage");
                     }
                 });
             }
@@ -1045,7 +1045,7 @@ function beChat(parent, json) {
 `);
 
     let isInIframe = window !== window.top;
-    
+
     let buttonBox = parent.createElement();
     buttonBox.style.setProperty("display", "flex");
 

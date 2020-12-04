@@ -29,7 +29,7 @@ function fileTypes(name) {
        return "image/png";
     }
     if (name.endsWith(".svg")) {
-       return "image/svg";
+       return "image/svg+xml";
     }
     if (name.endsWith(".html")) {
        return "text/html";

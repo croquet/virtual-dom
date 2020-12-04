@@ -18,7 +18,9 @@ class DrawModel {
     init() {
         this._set("color", "black");
         this.subscribe(this.id, "line", "DrawModel.line");
+        this.subscribe(this.id, "pointerUp", "DrawModel.savePersistentData");
         this.subscribe(this.sessionId, "color", "DrawModel.color");
+        this.subscribe(this.sessionId, "clear", "DrawModel.clear");
     }
 
     line(data) {
@@ -32,6 +34,22 @@ class DrawModel {
 
     color(color) {
         this._set("color", color);
+        this.savePersistentData();
+    }
+
+    loadPersistentData(data) {
+        this._set("lines", data);
+    }
+
+    savePersistentData() {
+        let top = this.wellKnownModel("modelRoot");
+        let func = () => this._get("lines");
+        top.persistSession(func);
+    }
+
+    clear() {
+        this._set("lines", null);
+        this.savePersistentData();
     }
 }
 
@@ -39,11 +57,13 @@ class DrawView {
     init() {
         this.addEventListener("pointerdown", "DrawView.pointerDown");
         this.subscribe(this.model.id, "drawLine", "DrawView.drawLine");
-        this.future(1).call("DrawView", "initDraw");
+        this.subscribe(this.sessionId, 'clear', 'DrawView.clear');
+        this.initDraw();
     }
 
     initDraw() {
         if (!this.model._get("lines")) {return;}
+        this.clear();
         this.model._get("lines").forEach(data => {
             this.drawLine(data);
         });
@@ -69,11 +89,12 @@ class DrawView {
         }
     }
 
-    pointerUp(evt) {
+    pointerUp(_evt) {
         this.removeEventListener("pointermove", "DrawView.pointerMove");
         this.removeEventListener("pointerup", "DrawView.pointerUp");
         this.lastPoint = null;
         this.releaseAllPointerCapture();
+        this.publish(this.model.id, "pointerUp");
     }
 
     drawLine(data) {
@@ -84,6 +105,12 @@ class DrawView {
         ctx.moveTo(data.from.x, data.from.y);
         ctx.lineTo(data.to.x, data.to.y);
         ctx.stroke();
+    }
+
+    clear() {
+        let canvas = this.dom;
+        let ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 }
 
@@ -107,18 +134,57 @@ class Color {
     }
 }
 
-function beDrawing(parent, json) {
+class ClearButton {
+    init() {
+        this.addEventListener("click", "ClearButton.click");
+        this.setStyleString(`.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+.icon {
+    width: 36px;
+    height: 36px;
+    margin-top: 8px;
+    margin-left: 10px;
+    padding: 2px;
+    border-radius: 3px;
+    background-color: #E6E6E6;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    background-image: url("./assets/icons/trash-can.svg");
+}
+
+.icon:hover {
+    background-color: #F2F2F2;
+    box-shadow: 0 0.5px 4px rgba(0,0,0,0.2);
+}
+
+`);
+
+        this.classList.add("icon");
+    }
+
+    click() {
+        this.publish(this.sessionId, "clear");
+    }
+}
+
+function beDrawing(parent, json, persistentData) {
     let top = parent.createElement();
     let canvas = parent.createElement("CanvasElement");
 
-    canvas.setCode(parent.getLibrary("drawing.DrawModel"));
-    canvas.setViewCode(parent.getLibrary("drawing.DrawView"));
+    canvas.setCode("drawing.DrawModel");
+    canvas.setViewCode("drawing.DrawView");
+    canvas.style.setProperty("border", "1px solid gray");
 
     let color = parent.createElement();
-    color.setCode(parent.getLibrary("drawing.Color"));
+    color.setCode("drawing.Color");
 
-    color.style.setProperty("width", "60");
-    color.style.setProperty("height", "60px");
+    color.style.setProperty("width", "40px");
+    color.style.setProperty("height", "40px");
     color.style.setProperty("border-radius", "50%");
 
     color.domId = "color";
@@ -137,10 +203,18 @@ function beDrawing(parent, json) {
     top.appendChild(canvas);
     top.appendChild(color);
     parent.appendChild(top);
+
+    let clear = parent.createElement();
+    clear.domId = "clear";
+    clear.setCode("drawing.ClearButton");
+    parent.appendChild(clear);
+    if (persistentData) {
+        canvas.call("DrawModel", "loadPersistentData", persistentData);
+    }
     return parent;
 }
 
 export const drawing = {
-    expanders: [DrawModel, DrawView, Color],
+    expanders: [DrawModel, DrawView, Color, ClearButton],
     functions: [beDrawing]
 };

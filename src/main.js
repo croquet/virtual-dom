@@ -21,17 +21,17 @@ import {loader, svgSpriteLoader} from "./loader.js";
 
 function single(code, sessionOptions, sessionName, init) {
     class Model extends TopModel {
-        init(options) {
-            super.init(options);
-            this.future(0).load(options);
+        init(options, persistentData) {
+            super.init(options, persistentData);
+            this.future(0).load(options, persistentData);
         }
 
-        load(options) {
+        load(options, persistentData) {
             let element = Element.create();
             element.beWorld();
             element.style.setProperty("height", "100%");
             element.topChild = true;
-            element.evaluate(options.code, options.json, options.projectCode);
+            element.evaluate(options.code, options.json, options.projectCode, persistentData);
         }
     }
     Model.register("Model");
@@ -41,7 +41,7 @@ function single(code, sessionOptions, sessionName, init) {
 
 export function makeMain(init, sessionOptions, library, sessionName, svgFileName) {
     let projectCode = `
-return function projectCode(parent, json) {
+return function projectCode(parent, json, persistentData) {
     parent.topChild = true;
     parent.domId = "top";
     parent.style.setProperty("position", "relative");
@@ -50,7 +50,7 @@ return function projectCode(parent, json) {
     parent.style.setProperty("height", "100%");
     let initializer = parent.getLibrary("${init}");
     let func = new Function(initializer)();
-    func(parent, json);
+    func(parent, json, persistentData);
     return parent;
 }`;
 

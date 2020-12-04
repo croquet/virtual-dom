@@ -44,7 +44,11 @@ class Epidemic {
             this._set("map", map);
         }
 
-        let villagers = [];
+        let villagers = this._get("villagers");
+
+        if (villagers && villagers.length === n) {return;}
+
+        villagers = [];
         for (let i = 0; i < n; i++) {
             let m = Math.random() * Math.PI * 2;
             let villager = {
@@ -64,6 +68,11 @@ class Epidemic {
         if (!map) {return;}
         let villagers = this._get("villagers");
         if (!villagers) {return;}
+
+        if (!this._get("lastSaveTime")) {
+            this._set("lastSaveTime", this.now());
+        }
+
         if (this._get("stepping")) {
             this.future(50).call("Epidemic", "step");
         }
@@ -145,16 +154,39 @@ class Epidemic {
             }
         }
         this.publish(this.id, "update");
+
+        if (this.now() > this._get("lastSaveTime") + 30000) {
+            this._set("lastSaveTime", this.now());
+            this.savePersistentData();
+        }
+    }
+
+    loadPersistentData(data) {
+        this._set("villagers", data);
+        let parent = this.parentNode;
+        let count = parent.querySelector("#count");
+        if (count) {
+            let n = data ? data.length : 1000;
+            count.load(`${n}`);
+        }
+    }
+
+    savePersistentData() {
+        let top = this.wellKnownModel("modelRoot");
+        let func = () => this._get("villagers");
+        top.persistSession(func);
     }
 }
 
 class EpidemicView {
     init() {
         this.subscribe(this.model.id, "update", "EpidemicView.update");
+        this.update();
     }
 
     update() {
         let villagers = this.model._get("villagers");
+        if (!villagers) {return;}
         let canvas = this.querySelector("#holder");
         if (!canvas) {return;}
         canvas = canvas.dom;
@@ -178,10 +210,10 @@ class EpidemicView {
     }
 }
 
-function beEpidemic(top, json) {
+function beEpidemic(top, json, persistentData) {
     let elem = top.createElement();
-    elem.setCode(top.getLibrary("epidemic.Epidemic"));
-    elem.setViewCode(top.getLibrary("epidemic.EpidemicView"));
+    elem.setCode("epidemic.Epidemic");
+    elem.setViewCode("epidemic.EpidemicView");
 
     let holder = top.createElement("CanvasElement");
     holder.domId = "holder";
@@ -203,14 +235,17 @@ function beEpidemic(top, json) {
     count.domId = "count";
     count.setWidth(100);
     count.style.setProperty("height", 28);
-    count.style.setProperty("margin", "2px");
-    count.style.setProperty("padding", "3px");
+    count.style.setProperty("-cards-text-margin", "4 4 4 4");
     count.load("1000");
 
     elem.appendChild(holder);
     elem.appendChild(button);
     elem.appendChild(count);
+
     top.appendChild(elem);
+    if (persistentData) {
+        elem.call("Epidemic", "loadPersistentData", persistentData);
+    }
 }
 
 export const epidemic = {

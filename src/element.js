@@ -89,9 +89,8 @@ class ElementRef {
 }
 
 export class TopModel extends M {
-    init(options) {
-        super.init(options);
-        this.child = null; // Element or null
+    init(options, persistentData) {
+        super.init(options, persistentData);
         this.userManager = {};
         this.containerExtent = {width: "1024px", height: "768px"};
 
@@ -166,6 +165,7 @@ export class Element extends M {
         this.$handlers = {};
         this.worldState = null;
         this.subscriptions = {};
+        /*
         if (options && options.code) {
             this.beWorld();
             this.options = {};
@@ -180,6 +180,7 @@ export class Element extends M {
 
             this.future(1).evaluate(options.code, options.json, options.projectCode);
         }
+        */
     }
 
     static viewClass() {return ElementView;}
@@ -222,7 +223,7 @@ export class Element extends M {
     }
 
     // features for the world (i.e., top-level) element
-    evaluate(str, json, projectCode) {
+    evaluate(str, json, projectCode, persistentData) {
         if (json) {
             json = JSON.parse(json);
         } else {
@@ -230,7 +231,7 @@ export class Element extends M {
         }
 
         let func = new Function(str)();
-        func(this, json);
+        func(this, json, persistentData);
         let child;
         if (projectCode) {
             let cFunc = new Function(projectCode)();
@@ -1070,6 +1071,7 @@ export class TopView extends V {
         document.body.style.setProperty("overscroll-behavior-x", "none");
         document.body.style.setProperty("overflow", "hidden");
         document.body.style.setProperty("height", "100%");
+        document.body.style.setProperty("margin", "0");
 
         this.dom = document.createElement("div");
         this.dom.id = "toplevel";
@@ -1210,7 +1212,7 @@ export class TopView extends V {
         }
     }
 
-    requestInitalization(view, trait, method) {
+    requestInitialization(view, trait, method) {
         this.initializer.push([view, trait, method]);
     }
 

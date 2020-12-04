@@ -64,11 +64,26 @@ class ChatModel {
             history.shift();
         }
         this._set("history", history);
+        this.savePersistentData();
+        
     }
 
     reset() {
         this._set("history", []);
+        this.savePersistentData();
         this.publish(this.id, "refresh");
+    }
+
+    loadPersistentData(data) {
+        this._set("history", data.history);
+        this._set("limit", data.limit);
+        this.publish(this.id, "refresh");
+    }
+
+    savePersistentData() {
+        let top = this.wellKnownModel("modelRoot");
+        let func = () => ({history: this._get("history"), limit: this._get("limit")});
+        top.persistSession(func);
     }
 }
 
@@ -475,7 +490,7 @@ class UserListView {
     }
 }
 
-function beChat(parent) {
+function beChat(parent, _json, persistentData) {
     parent.style.setProperty("background-color", "transparent");
     let chat = parent.createElement();
     chat.domId = "chat";
@@ -535,10 +550,10 @@ body {
 }
 
 #textOutHolder {
-    // border: 1px solid gray;
-    overflow-y: scroll;
     flex-grow: 2;
     padding: 10px;
+    overflow-x: hidden;
+    overflow-y: scroll;
 }
 
 #chat[transparency="true"] #textOutHolder {
@@ -555,6 +570,7 @@ body {
 #textInHolder {
     flex-grow: 2;
     height: fit-content;
+    padding:2px;
 }
 
 #textIn {
@@ -565,6 +581,7 @@ body {
     // border-radius: 9px;
     background-color: #E6E6E6;
     box-shadow: inset -2px -2px 2px 0 rgba(240,240,240.0.3), inset 2px 2px 2px 0 rgba(0,35,46,0.08);
+    padding: 10px;
 }
 
 #textIn:hover {
@@ -578,8 +595,8 @@ body {
     height: 28px;
     border-radius: 8px;
     margin: 0px 4px;
-    background-color: #e8e8e8;
-    box-shadow: -1px -1px 2px 1px rgba(240,240,240,0.3), 2px 2px 2px 1px rgba(124,135,157,0.24)
+    // background-color: #e8e8e8;
+    // box-shadow: -1px -1px 2px 1px rgba(240,240,240,0.3), 2px 2px 2px 1px rgba(124,135,157,0.24)
 }
 
 #sendButton[entered="true"] {
@@ -701,6 +718,11 @@ body {
     chat.appendChild(infoBar);
 
     parent.appendChild(chat);
+
+    if (persistentData) {
+        chat.call("ChatModel", "loadPersistentData", persistentData);
+    }
+    
     return parent;
 }
 
