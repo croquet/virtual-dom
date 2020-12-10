@@ -152,6 +152,7 @@ class MiniBrowser {
             let oldUrl = iframe._get("src");
             url = url.trim();
             if (url.length === 0) {
+                // won't happen now, given the check above
                 iframe._set("src", "");
                 this.announceUrlChanged();
                 this.updateTransparency();
@@ -200,6 +201,8 @@ class MiniBrowser {
     }
 
     announceUrlChanged() {
+        this.publish(this.sessionId, "savePersistentData");
+
         // make sure the view knows that the url has changed
         this.publish(this.id, "urlChanged");
     }
@@ -227,6 +230,16 @@ class MiniBrowserView {
         this.appInfo = null;
         this.subscribe(this.model.id, "updateTransparency", "MiniBrowserView.updateTransparency"); // published by MiniBrowser
         this.subscribe(this.model.id, "urlChanged", "MiniBrowserView.urlChanged");
+
+        // if the model has an empty url, open the address bar
+        // for editing
+        let url = this.model.call("MiniBrowser", "getURL");
+        if (!url) {
+            let addressBar = this.model.call("MiniBrowser", "getAddressBar");
+            // the FrameAddressEditView that subscribes to this message
+            // might not have been initialised yet
+            this.future(100).publish(addressBar.id, "setEditState", true);
+        }
         console.log("MiniBrowserView.init");
     }
 
@@ -294,7 +307,7 @@ class QRView {
         this.dom.addEventListener("dragend", evt => this.endDrag(evt)); // we need the raw DOM event to work with
         this.dom.addEventListener("pointerdown", (evt) => this.pointerDown(evt));
 
-        console.log("QRView init");
+        // console.log("QRView init");
     }
 
     pointerDown(evt) {
