@@ -86,8 +86,8 @@ class Model {
         let n = new this();
         n.init(options);
         myIsland.modelsById[n.id] = n;
-        if (!window.ISLAND.modelsByName) {
-            window.ISLAND.modelsByName = {modelRoot: n};
+        if (!window.ISLAND.modelsByName.modelRoot) {
+            window.ISLAND.modelsByName.modelRoot = n;
         }
         return n;
     }
@@ -147,6 +147,10 @@ class Model {
 
     now() {
         return Date.now() - this.start;
+    }
+
+    persistSession(func) {
+        console.log("persistSession", func());
     }
 }
 

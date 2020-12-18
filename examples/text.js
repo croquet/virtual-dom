@@ -16,6 +16,61 @@ limitations under the License.
 
 /* globals Croquet */
 
+class TextModel {
+    init() {
+        let text = this.querySelector("#textElement");
+        if (!text) {
+            text = this.createElement("TextElement");
+            text.domId = "text";
+            text.classList.add("text");
+
+            text.style.setProperty("-cards-text-margin", "4px 4px 4px 4px");
+            text.setDefault("OpenSans", 16);
+            text.style.setProperty("width", "600px");
+            text.style.setProperty("height", "400px");
+            text.style.setProperty("position", "relative");
+            text.style.setProperty("background-color", "white");
+            text.setViewCode("text.FrameView");
+            text.setWidth(600);
+            text.setViewCode(["text.FrameView", "text.FontLoader"]);
+            this.appendChild(text);
+        }
+
+        this.subscribe(this.id, "save", "TextModel.savePersistentData");
+    }
+
+    loadPersistentData(data) {
+        let text = this.querySelector("#text");
+        if (text) {
+            text.load(data);
+        }
+    }
+
+    savePersistentData() {
+        let text = this.querySelector("#text");
+        let top = this.wellKnownModel("modelRoot");
+        if (!text || !top) {return;}
+        let func = () => text.doc.save();
+        top.persistSession(func);
+    }
+}
+
+class TextView {
+    init() {
+        if (!this.loop) {
+            this.loop = true;
+            console.log("view.save()");
+            this.future(60 * 1000).call("TextView", "save");
+        }
+    }
+
+    save() {
+        console.log("view.save()");
+        this.publish(this.model.id, "save");
+        this.future(60 * 1000).call("TextView", "save");
+    }
+}
+
 class FontLoader {
     init() {
         let spec = [
@@ -302,10 +357,13 @@ class FrameView {
     }
 }
 
-function beText(parent, json) {
-    let text = parent.createElement("TextElement");
-    text.domId = "text";
-    text.classList.add("text");
+function beText(parent, _json, persistentData) {
+    let textModel = parent.createElement();
+    textModel.domId = "textmodel";
+    textModel.classList.add("textmodel");
+
+    textModel.setCode("text.TextModel");
+    textModel.setViewCode("text.TextView");
 
     parent.setStyleClasses(`
 
@@ -401,29 +459,22 @@ function beText(parent, json) {
 
 `);
 
-    text.style.setProperty("-cards-text-margin", "4px 4px 4px 4px");
-    text.setDefault("OpenSans", 16);
-    text.style.setProperty("width", "600px");
-    text.style.setProperty("height", "400px");
-    text.style.setProperty("position", "relative");
-    text.style.setProperty("background-color", "white");
-    text.setViewCode("text.FrameView");
-    text.setWidth(600);
-
-    text.setViewCode(["text.FrameView", "text.FontLoader"]);
-
-    parent.appendChild(text);
+    parent.appendChild(textModel);
 
     let palette = parent.createElement();
     palette.domId = "palette";
     palette.setCode("text.WidgetModel");
     palette.setViewCode("text.WidgetView");
-    palette._set("text", text.domId);
+    palette._set("text", "text");
     parent.appendChild(palette);
+
+    if (persistentData) {
+        textModel.call("TextModel", "loadPersistentData", persistentData);
+    }
     return parent;
 }
 
 export const text = {
-    expanders: [FontLoader, WidgetModel, WidgetView, FrameView],
+    expanders: [FontLoader, TextModel, TextView, WidgetModel, WidgetView, FrameView],
     functions: [beText]
 };
