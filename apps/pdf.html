@@ -11,7 +11,7 @@ let library = new Library();
 library.addLibrary("pdf", pdf);
 library.addLibrary("widgets", widgets);
 
-window.onload = makeMain("pdf.bePDF", {autoSleep: false, appId: "io.croquet.vdom.pdf"}, library, null);
+window.onload = makeMain("pdf.bePDF", {autoSleep: false, appId: "io.croquet.vdom.pdf", tps: 0}, library, null);
   </script>
 </head>
   <body style="touch-action: none">

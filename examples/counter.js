@@ -16,11 +16,12 @@ limitations under the License.
 
 class Counter {
     init() {
-        this.addEventListener("click", "Counter.reset");
+        this.addEventListener("click", "reset");
         if (this._get("count") === undefined) {
             this._set("count", 0);
             this.future(1000).call("Counter", "next");
         }
+        console.log("Counter.init");
     }
 
     next() {
@@ -41,8 +42,9 @@ function beCounter(parent, json) {
     let text = parent.createElement("TextElement");
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
+    text.setDefault("serif", 12);
     parent.appendChild(text);
-    text.setCode(parent.getLibrary("counter.Counter"));
+    text.setCode("counter.Counter");
 }
 
 export const counter = {

@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2020-08-10
+  Last Modified: 2021-05-19
 
 # Introduction
 
@@ -13,7 +13,7 @@ In order to satisfy this restriction there are some innovations, such as patchin
 
 The view mediates between such a model and the user. It displays the state of the model, and when a user performs any input action the view sends a message to the equivalent model for all users in the session, so that the model will change to the same new state for all users.
 
-The model is expected to be in the same state, but the views may be different for each client, for example because of differences in screen size, or because an operation that a user is doing may be visible in the first instance only for that user, before being sent to the model. The code describing the behavior of the view is allowed to read out the state of the model. Using an analogy with network programming in the server-client model, the view's code is the client program, but it is like being able to read out the state of the server directly from that program. This also contributes to the descriptiveness of Croquet.
+The model is expected to be in the same state, but the views may be different for each client, because of, for example, differences in screen size, or because an operation that a user is doing may be visible for that user, before being sent to the model. The code describing the behavior of the view is allowed to read out the state of the model. Using an analogy with network programming in the server-client model, the view's code is the client program, but it is like being able to read out the state of the server directly from that program. This also contributes to the descriptiveness of Croquet.
 
 In other words, we follow the principle that "common information among clients should be stored in the model and other information should be stored in the view".
 
@@ -68,39 +68,58 @@ First of all, I would like to refer to `examples/counter.js` and `counter.html` 
 
 ## Invocation
 
-Run `server.py` in the top directory from a terminal using Python2 or Python3.
+First, copy the Croquet SDK file into a directory called `croquet.
+
+~~~~~~~~
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
+~~~~~~~~
+
+The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@0.5.0/pub/croquet.min.js`.
+
+Run `server.js` in the top directory from a terminal using `node`.
+~~~~~~~~
+# node server.js &
+~~~~~~~~
+
+If you don't have node.js insalled but have Python 2 or Python 3, you can use the equivalent server written in Python.
+
 ~~~~~~~~
 # python server.py &
 ~~~~~~~~
-Since we are using 8000 as the default port number, you can access:
+
+Both server programs use port 8000 by default so you can access an example at this location:
+
 ~~~~~~~~
 http://localhost:8000/apps/counter.html
 ~~~~~~~~
-If the fourth argument of `makeMain()` is true, a session hash prefixed by `#` is attached to the URL. You can enter the same session from another browser by accessing this extended URL.
+
+If the fourth argument of `makeMain()` is a string, a random session name prefixed by `?q=` is attached to the URL. You can enter the same session from another browser by accessing this extended URL.
 
 ## File Organization
 
 Here we refer to a file like `counter.js` as a library file. A library is configured as follows:
 
 ```text
-    &lt;class definition&gt;
-    &lt;class definition&gt;...
+    &lt;expander definition&gt;...
 
     &lt;function definition&gt;...
 
-    &lt;export statement with "expanders" and "functions" properties&gt;
+    &lt;class definition&gt;...
+
+    &lt;export statement with "expanders",  "functions" and "classes" properties&gt;
 ```
 
 In `counter.js` there is only one class definition: `Counter`.
 
-~~~~~~~~~~~~~~~~~~~~~~~ JavaScript
+~~~~~~~~ JavaScript
 class Counter {
     init() {
-        this.addEventListener("click", "Counter.reset");
+        this.addEventListener("click", "reset");
         if (this._get("count") === undefined) {
             this._set("count", 0);
             this.future(1000).call("Counter", "next");
         }
+        console.log("Counter.init");
     }
 
     next() {
@@ -121,6 +140,7 @@ function beCounter(parent, json) {
     let text = parent.createElement("TextElement");
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
+    text.setDefault("serif", 12);
     parent.appendChild(text);
     text.setCode(parent.getLibrary("counter.Counter"));
 }
@@ -129,46 +149,52 @@ export const counter = {
     expanders: [Counter],
     functions: [beCounter]
 };
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
 I'll explain it line by line below.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class Counter {
 ~~~~~~~~
-This defines an expander named `Counter`. Code written in a library file is processed as string data, so it is not allowed to refer to "free variables" from outside the expander. However, if you need access to other expanders' code, use the initialization-function `library` argument as described below.
+This defines an expander named `Counter`. The keyword "class" is used to to start a definition so that the syntax checker can handle the description. In other words, the syntax to write an expander is exactly JavaScript. Code written in a library file is processed as string data, so it is not allowed to refer to "free variables" from outside the expander. However, if you need access to other expanders' code, use the initialization-function `library` argument as described below.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
   init() {
 ~~~~~~~~
-`init()` is the name of a special method which is executed automatically when the expander is "installed" on an element. (However, the expander may be edited in the authoring tool, and in that case, `init()` is called each time it is edited).
+`init()` is the name of a special method which is executed automatically when the expander is "installed" on an element. (However, the expander may be edited in the authoring tool, and in that case, `init()` is called on the existing object each time the expander is edited).
 
+~~~~~~~~ JavaScript
+        this.addEventListener("click", "reset");
 ~~~~~~~~
+This adds an event handler for when a DOM click event occurs on the virtual DOM element where this expander is installed. Internally, a click handler is added to the actual DOM element, and when the user clicks, it is delivered to this expander. `"reset"` is the name of the method in the expander to be involved.
+
+You may explicitly specify the expander and the method name in the manner of:
+~~~~~~~~ JavaScript
         this.addEventListener("click", "Counter.reset");
 ~~~~~~~~
-This adds an event handler for when a DOM click event occurs on the virtual DOM element where this expander is installed. Internally, a click handler is added to the actual DOM element, and when the user clicks, it is delivered to this expander. `"Counter.reset"` means the `reset` method of the expander installed under the name `Counter`, which will be called when the event occurs.
 
-The `this` in the method refers not to the expander but to the DOM element where it is installed.
+However, it is very rare to invoke a method from a different expander from  where `addEventListener` is called: so the common case is just to specify the methd name..
 
-~~~~~~~~
+Note that the `this` variable in the expander method refers to the virtual DOM element where it is installed. not to the expander itself.
+
+~~~~~~~~ JavaScript
         if (this._get("count") === undefined) {
             this._set("count", 0);
         }
 ~~~~~~~~
-As described above, `init()` may be called multiple times for already existing elements. Therefore, when you initialize a variable in `init()` and you want to keep the value even if the code changes a little while the same element survives, you should initialize it only when the value is not yet set, like this. Incidentally, `addEventListener` is registered only once even if you call it multiple times. Here, the property `count` is defined for the virtual DOM element.
+As described above, `init()` may be called multiple times for already existing elements. Therefore, when you initialize a variable in `init()` and you want to keep the value even if the code changes a little while the same element survives, you should initialize it only when the value is not yet set. Checking against `undefined` here implements that. On the other hand, calling `addEventListener` for a virtual DOM element with the same arguments multiple times does not register multiple handlers. Here, the property `count` is defined for the virtual DOM element.
 
 `_get()` and `_set()` are methods to read and write the properties of a virtual DOM element. A virtual DOM element can hold only JSONizable values. Were they made readable and writable using simple dot notation, that would invite inadvertently storing inappropriate values, such as functions that have free variables. Instead, one must use the verbose `_get()` and `_set()` notation, chosen so as not to clash with internal property names, and mmust keep in mind that only JSONizable values can be stored.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
             this.future(1000).call("Counter", "next");
-        }
 ~~~~~~~~
 
-`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 milliseconds.
+`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 walk clock milliseconds, or exact 1000 logical milliseconds.
 
 In this case, the method is `call()`, meaning that the `next` method of the expander installed with the name `Counter` will be invoked. In the near future it is planned to make it possible to write just `this.future(1000).next()`, implicitly specifying that the method is on the same expander, as with other calls to expander methods.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     next() {
         let c = this._get("count") + 1;
         this._set("count", c);
@@ -180,7 +206,7 @@ As shown above, `next()` is executed 1000 milliseconds after the first call to `
 
 The last line of `next` calls `next()` itself again. Like `requestAnimationFrame()` or setTimeout, this is a standard tactic for performing processing at a regular interval.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     reset() {
         let c = 0;
         this._set("count", c);
@@ -189,47 +215,53 @@ The last line of `next` calls `next()` itself again. Like `requestAnimationFrame
 ~~~~~~~~
 This is the method called when a click event occurs, as specified by `init()`. The `count` property is set to 0, and the `value` of the `text` element is set to "0".
 
+~~~~~~~~ JavaScript
+function beCounter(parent, json, persistentData) {
 ~~~~~~~~
-function beCounter(parent, json) {
-~~~~~~~~
-This is the function to create the virtual DOM element used by the application. As an image, you can think of it as embodying the manual work of interactively creating elements and setting styles and properties in an interface builder.
+This is the function to create the virtual DOM element used by the application. As an analogy, you can think of it as embodying the exploratory work of interactively creating elements and setting styles and properties in an interface builder.
 
 `parent` is a virtual DOM element which is to be the parent of this "application". You can ignore `json` for the time being.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     let text = parent.createElement("TextElement");
 ~~~~~~~~
-Virtual DOM elements are created using the `createElement()` of some arbitrary virtual DOM element, instead of `document.createElement()`. The basic design policy is to use `div` elements for most of the processes, so that as far as possible "everything is made of the same kind of object". However, since elements that provide some special features cannot be replaced by `div`, there are text elements, video elements, iframe elements, and canvas elements, which can be created by specifying a type in the argument.
+Virtual DOM elements are created using the `createElement()` of a virtual DOM element, instead of `document.createElement()`. The basic design policy is to use `div` elements for almost anything, so that as far as possible "everything is made of the same kind of object". However, since elements that provide some special features cannot be replaced by `div`, there are text elements, video elements, iframe elements, and canvas elements, which can be created by specifying a type in the argument.
 
 In this example, we are creating a virtual text element to display the string (though in this case there would be no problem with using a `div`, since this text does not have to be collaboratively editable).
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
 ~~~~~~~~
-A virtual DOM element has basic properties such as style and classList, which can be used to set the CSS style. How to set CSS classes will be explained later.
+A virtual DOM element has basic properties such as `style` and `classList`, which can be used to set the CSS style. How to set CSS classes will be explained later.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     parent.appendChild(text);
 ~~~~~~~~
 Use `appendChild()` to add elements created in this way to the DOM tree.
 
+~~~~~~~~ JavaScript
+    text.setCode("counter.Counter");
 ~~~~~~~~
-    text.setCode(parent.getLibrary("counter.Counter"));
-}
-~~~~~~~~
-Then, we use the method `setCode` to set the behavior of the element, specifying the expander called "Counter" within the "counter" library registered in the library created in the HTML file.
+Then, we use the method `setCode` to set the behavior of the element, specifying the path to the expander called "Counter" within the "counter" library registered in the library created in the HTML file.
 
+You may call `setCode` with the actual code string of the expander, as opposed to the library path:
+
+~~~~~~~~ JavaScript
+    text.setCode(parent.getLibrary("counter.Counter"));
 ~~~~~~~~
+The latter form is useful when the expander may be modified at runtime, but the common case is the former style.
+
+~~~~~~~~ JavaScript
 export const counter = {
     expanders: [Counter],
     functions: [beCounter]
 };
 ~~~~~~~~
-A library file like `counter.js` exports objects with properties `expanders` and `functions`. The above `parent.getLibrary("counter.Counter")` means to get the `Counter` from the library exported as `counter`. (You can think of `expanders` and `functions` as being combined into one object after some other internal processing.)
+A library file like `counter.js` exports objects with properties `expanders` and `functions`. The above `parent.getLibrary("counter.Counter")`, or `setCode("counter.Counter")` means to get the `Counter` expander from the library exported as `counter`.
 
-The counter.html that calls it looks like this:
-~~~~~~~~
+The `counter.html` that calls it looks like this:
+~~~~~~~~ HTML
 &lt;html&gt;
   &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
@@ -241,7 +273,7 @@ import {counter} from "./examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
 
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
+window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
   &lt;/script&gt;
 &lt;/head&gt;
   &lt;body style="touch-action: none"&gt;
@@ -252,30 +284,31 @@ window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true,
 
 Picking out some details:
 
-~~~~~~~~
+~~~~~~~~ HTML
   &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
 ~~~~~~~~
-This loads the Croquet library copied into the croquet directory. Alternatively, you can load it from `https://croquet.io/sdk/croquet-latest.min.js`.
+This loads the Croquet SDK file copied into the `croquet` directory. Alternatively, you can load a stable version of the SDK from `https://unpkg.com/@croquet/croquet@0.5.0`.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 import {makeMain, Library} from "./src/framework.js";
 
 import {counter} from "./examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
+~~~~~~~~
 
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
-~~~~~~~~
-Importing `makeMain` from main.js and `Library` from library.js is the same for any application as long as it follows this pattern. Import your own library, `counter.js`, and register it to an instance of `Library`.
+Importing `makeMain` from `main.js` and `Library` from `library.js` is the same for any application as long as it follows this pattern. Import your own library, `counter.js`, and register it to an instance of `Library`.
 
+The following line:
+
+~~~~~~~~ JavaScript
+window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
 ~~~~~~~~
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
-~~~~~~~~
-creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last two arguments are flags specifying, respectively, whether the page access should automatically create a new shared session and add a distinguishing hash to the URL, and whether or not to launch the authoring tool at the same time.
+creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last argument specifies the name of the session if it is a string, or the page access should automatically create a new shared session and add a distinguishing session ID to the URL.
 
 # Development and Debugging of a New Application
 
-At this point we are deliberately avoiding packaging the framework part, instead pursuing development in which you can just edit a file and reload the page to try it out immediately. To write a new application, you can create a new file like `counter.js` above, and also make your own copy of `counter.html` to call it.
+We are deliberately avoiding complicated JavaScript bundling mechanisms, transpilation and such machinary. Instead, we pursue a development style in which you can just edit a file and reload the page to try it out immediately. To write a new application, you can create a new file like `counter.js` above, and also make your own copy of `counter.html` to call it.
 
 ## `isLocal` flag
 Much of application development is about making visual adjustments and other model behavior checks, with no need to test out the sharing aspects, so working with just one client is enough. To simplify such a development cycle, if the query parameter `?isLocal` is specified in the URL, the application will be executed with the reflector's role replaced by a local emulation. In the case of `counter.html`:
@@ -286,73 +319,88 @@ http://localhost:8000/counter.html?isLocal
 will allow the application's code to be run exactly as is, but without the need for a network.
 
 ## debugger
-At present, there is a problem in that code written as an expander goes through a string representation before being evaluated and executed, which means that a browser debugger cannot display line numbers. By inserting a `debugger` statement the debugger can be started, or if output is generated using `console.log` then clicking on the reported line numbers in the output allows reference to the code in a "VM..." pseudo file, and the insertion of breakpoints. In the future we would like to improve the situation, such as by allowing expander code to be inserted without going through a string representation whenever possible.
+At present, there is a problem in that code written as an expander goes through a string representation before being evaluated and executed, which means that a browser debugger cannot locate the original source location. Good news is that by inserting a `debugger` statement the debugger can be started, or if output is generated using `console.log` then clicking on the reported line numbers in the output allows reference to the code in a "VM..." pseudo file. In the future we would like to improve the situation, such as by allowing expander code to be inserted without going through a string representation whenever possible.
 
 # Example 2 (Drawing)
 
-As an example of an application in which each client has a different view, I'll now introduce a simple drawing program. This example has multiple expanders in one library file, and also adds code to the view.
+As an example of an application with view code, Here is a simple drawing program `drawing.js` and `drawing.html`.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class DrawModel {
     init() {
         this._set("color", "black");
-        this.subscribe(this.id, "line", "DrawModel.line");
-        this.subscribe(this.sessionId, "color", "DrawModel.color");
+        this.subscribe(this.id, "line", "line");
+        this.subscribe(this.sessionId, "color", "color");
+        this.subscribe(this.sessionId, "clear", "clear");
+        this.subscribe(this.id, "pointerUp", "savePersistentData");
     }
 ~~~~~~~~
-This model has `color` and `lines` (described below) as state properties, and calls `subscribe()` to communicate with the view. The first and second arguments of `subscribe()` are the scope and the message name, which together constitute a key agreed among the objects interested in these messages. The third argument of `subscribe()` defines the method to be invoked when a message arrives, specified by joining the expander name and method name with a dot.
+This model has `color` and `lines` (described below) as state properties, and calls `subscribe()` to communicate with the view. The first and second arguments of `subscribe()` are the scope and the message name, which together constitute a key agreed among the objects interested in these messages. The third argument of `subscribe()` defines the method to be invoked when a message arrives.
 
-In the case of "line" messages, we want only the view object that knows about this particular model to receive "line" messages from it. This is achieved by using the model's `this.id` as the scope; in effect, this declares that "only this model/view pair is interested in this message". The "color" message, by contrast, comes from a distinct virtual DOM element, and is to be received by all objects used in the session. Therefore as scope we use `this.sessionId`, a shared value that all the session's objects have access to.
+In the case of "line" messages, we want only the view object that knows about this particular model to send "line" messages. This is achieved by using the model's `this.id` as the scope; in effect, this declares that "only this model/view pair is interested in this message". The "color" message, by contrast, comes from a distinct virtual DOM element, and is to be received by all objects used in the session. Therefore as scope we use `this.sessionId`, a shared value that all the session's objects have access to.
 
-~~~~~~~~
+Croquet has the persistent data mechanism to support code evolution. In essence, the developer has freedom to define a high-level application state description. When the new version of code is used, it can reconstruct the essential state from the data. In this drawing example, `lines` is deemed essential while `color` is not, and only the former is stored in the persistent data. Also, whenever pointerup message is sent from any view, the model saves the persistent data.
+
+~~~~~~~~ JavaScript
     line(data) {
         if (!this._get("lines")) {
             this._set("lines", []);
         }
 ~~~~~~~~
 
-The "line" message is sent from the view to the model when the user makes a mouse movement on the screen to draw a line. A case to watch out for in Croquet is when a new client joins after other people have already performed some actions, such as - in this application - drawing some lines. This requires that the model hold information about past line segments, so here it is stored in a property called "lines". The property could be created in `init()`, but let's try creating it when the information for the first line segment arrives.
+The "line" message is sent from the view to the model when the user makes a pointer movement on the screen to draw a line. A case to watch out for in Croquet is when a new client joins after other people have already performed some actions, such as - in this application - drawing some lines. This requires that the model hold information about past line segments, so here it is stored in a property called "lines". The property could be created in `init()`, but let's try creating it when the information for the first line segment arrives.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
         let line = {...data, color: this._get("color")};
         this._get("lines").push(line);
 ~~~~~~~~
 The object `{command: "line", from: {x,y}, to: {x,y}}` is sent as `data`. We augment it with `color`, and add the result to the "lines" property.
 
-~~~~~~~~
-  this.publish(this.id, "drawLine", line);
+~~~~~~~~ JavaScript
+        this.publish(this.id, "drawLine", line);
     }
 ~~~~~~~~
 And now we send this object in a `drawLine` message, this time from the model to the view. It is important to remember that only JSONizable objects can be sent as messages.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color(color) {
         this._set("color", color);
     }
 ~~~~~~~~
 When a "color" message is received, its value is stored in a property ready for the next "line" message.
 
-~~~~~~~~
+
+The `savePersistentData()` calls the Croquet API to create the persistent data, and `loadPersistentData()` fills in the `lines` property from the data.  Persitent data could be arbitrary complex: but it is a good practice to keep it minimum.
+
+~~~~~~~~ JavaScript
 class DrawView {
     init() {
-        this.addEventListener("mousedown", "DrawView.mouseDown");
+        this.addEventListener("pointerdown", "pointerDown");
 ~~~~~~~~
-`DrawView` is an expander installed in the `View` that corresponds to the above `DrawModel`. A `View` expander can also register event handlers for DOM events using `addEventListener`.
+`DrawView` is an expander installed in the view that corresponds to the above `DrawModel`. A view expander can also register event handlers for DOM events using `addEventListener`.
 
-~~~~~~~~
-        this.subscribe(this.model.id, "drawLine", "DrawView.drawLine");
+As of 2021, almost all common browsers supports DOM PointerEvents. We strongly recommend that an application exxlusively use pointer events, and not handle mouse events or touch events.
+
+~~~~~~~~ JavaScript
+        this.subscribe(this.model.id, "drawLine", "drawLine");
 ~~~~~~~~
 In the last line of `DrawModel.line()`, a message was sent using `this.publish(this.id, "drawLine", line);` with the model's `id` as the scope and "drawLine" as the name.
 
+The model sends `cleared` message when it receives a `clear` message and resets the `lines` state. The view responds to the message and clears the canvas content.
+
+~~~~~~~~ JavaScript
+        this.subscribe(this.model.id, "cleared", "clear");
+~~~~~~~~
+
 An `ElementView` stores the corresponding `Element` object itself as `this.model`, and can read values (including `id`) from the model freely. To receive the "drawLine" messages, the `DrawView`'s `subscribe` specifies the same scope and the same name. This is how the sending and receiving of the "drawLine" message for a particular `DrawModel`/`DrawView` pair is set up.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
         this.initDraw();
     }
 ~~~~~~~~
 This calls the method `initDraw()`, which is defined by the same expander.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     initDraw() {
         if (!this.model._get("lines")) {return;}
         this.model._get("lines").forEach(data => {
@@ -366,52 +414,54 @@ Since reading values from model objects is allowed, the virtual DOM view accesse
 
 `drawLine()` is an expander method, but remember that a method within the same expander can be called using `this.`. The call `this.drawLine(data)` is equivalent to `this.call("DrawView", "drawLine", data)`, because the call itself appears in a `DrawView` expander method.
 
+~~~~~~~~ JavaScript
+    pointerDown(evt) {
 ~~~~~~~~
-    mouseDown(evt) {
-~~~~~~~~
-This is the method registered in `init()` as a DOM event handler.
+This is the method registered in `init()` as an event handler.
 
+~~~~~~~~ JavaScript
+       if (evt.buttons !== 1) {return;}
+       this.setPointerCapture(evt.pointerId);
 ~~~~~~~~
-        let mouseMove = (evt) => {
-~~~~~~~~
-Like drawing, we want to track mousemove events only between the mouse button being pressed and being released, and during that time we need to handle them even if the mouse pointer leaves the DOM element's display area, and to handle a mouseup even if it occurs outside the area. Therefore, mousemove and mouseup handlers are set up afresh on mousedown and released on mouseup. This `mouseMove` function is designed for that purpose.
+We want to track pointermove events only between the pointer button being pressed and being released, and during that time we need to handle them even if the pointer leaves the DOM element's display area, and to handle a pointerup even if it occurs outside the area. Therefore, pointermove and pointerup handlers are set up afresh on pointerdown and released on pointerup. The `ElementView` class has `setPointerCapture()` method that utilizes the browser's pointer capture feature.
 
-~~~~~~~~
+The `pointerMove` method handles the drawing action.
+
+~~~~~~~~ JavaScript
             if (this.lastPoint) {
                 let p = {x: evt.offsetX, y: evt.offsetY};
                 this.publish(this.model.id, "line", {command: "line", from: this.lastPoint, to: p});
                 this.lastPoint = p;
             }
 ~~~~~~~~
-In this `mouseMove`, if the view finds a property `lastPoint` it publishes a message "line" so as to draw a line from `lastPoint` to the current mousemove event's `(offsetX, offsetY)`. The scope is `this.model.id`, so as usual it will only be delivered to objects that specify the same scope. Finally, `lastPoint` is updated to the new pointer position.
+In this `pointerMove`, if the view finds a property `lastPoint` it publishes a message "line" so as to draw a line from `lastPoint` to the current pointermove event's `(offsetX, offsetY)`. The scope is `this.model.id`, so as usual it will only be delivered to objects that specify the same scope. Finally, `lastPoint` is updated to the new pointer position.
 
 In the case of views, you can store arbitrary objects in properties, using the standard `this.propertyname` syntax. However, accidentally using a property name that is also used by the system will cause problems, so we may take some action on this in the future.
 
+~~~~~~~~ JavaScript
+    pointerUp(_evt) {
+        this.removeEventListener("pointermove", "pointerMove");
+        this.removeEventListener("pointerup", "pointerUp");
+        this.lastPoint = null;
+        this.releaseAllPointerCapture();
+        this.publish(this.model.id, "pointerUp");
+    }
 ~~~~~~~~
-        let mouseUp = (evt) => {
-            document.removeEventListener("mousemove", this.mousemove);
-            document.removeEventListener("mouseup", this.mouseup);
-            this.lastPoint = null;
-        };
-~~~~~~~~
-In `mouseUp`, the handler temporarily added to `document` is removed and `lastPoint` is also cleared.
+In `pointerUp`, the handlers temporarily added are removed and `lastPoint` is also cleared. The `releaseAllPointerCapture()`, which is a convenience method to invoke browser's `releasePointerCapture()` to clear captured pointers.
 
-~~~~~~~~
-        this.mousemove = mouseMove.bind(this);
-        this.mouseup = mouseUp.bind(this);
-
+~~~~~~~~ JavaScript
         let offsetX = evt.offsetX;
         let offsetY = evt.offsetY;
         this.lastPoint = {x: offsetX, y: offsetY};
 
-        document.addEventListener("mousemove", this.mousemove);
-        document.addEventListener("mouseup", this.mouseup);
+        this.addEventListener("pointermove", this.pointerMove);
+        this.addEventListener("pointerup", this.pointerup);
 ~~~~~~~~
-Still in mouseDown, we bind the above two functions to `this` and store them in properties, and also set `lastPoint` to the place where the mousedown happened. In addition, we register those functions as document-level event handlers until the mouseup occurs.
+Still in `pointerDown`, we set `lastPoint` to the place where the pointerdown happened. In addition, we register two functions as transient event handlers until the pointerup occurs.
 
-What should be noted here is the actual type of events being sent. The events delivered through the virtual DOM system are "cooked", with objects containing only somewhat abstract values in a way that absorbs client differences as much as possible, whereas handlers registered directly with real DOM elements, such as `mouseMove` and `mouseUp` here, receive the original DOM events. Either the program should use values chosen specifically to avoid inconsistencies, such as always using `offsetX`, or call `this.cookEvent()` to convert an event to a virtual event.
+What should be noted here is the actual type of events being sent. The events delivered through the virtual DOM system are "cooked", with objects containing only somewhat abstract values in a way that absorbs client differences as much as possible.  You can actually register event handlers directly with the real DOM elements, and, by doing so, you can handle actual "uncooked" DOM events.  Either the program should use values chosen specifically to avoid inconsistencies, such as always using `offsetX`, or call `this.cookEvent()` to convert an event to a virtual event.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     drawLine(data) {
         let ctx = this.dom.getContext("2d");
         ctx.lineWidth = 2;
@@ -424,10 +474,10 @@ What should be noted here is the actual type of events being sent. The events de
 ~~~~~~~~
 Using the data in a "drawLine" message sent from the model, draw on the actual DOM element stored in `this.dom`.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class Color {
     init() {
-        this.addEventListener("click", "Color.color");
+        this.addEventListener("click", "color");
         this.style.setProperty("background-color", "black");
     }
 ~~~~~~~~
@@ -435,7 +485,7 @@ This file defines another expander, called `Color`. It is installed in a certain
 
 In `init()`, the method `color` of the expander is specified to be called when a click event occurs, and the virtual-DOM style property `background-color` is set to `black`.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     randomColor() {
         let h = Math.floor(Math.random() * 256);
         let s = "100%";
@@ -445,41 +495,41 @@ In `init()`, the method `color` of the expander is specified to be called when a
 ~~~~~~~~
 `randomColor()` is used to get a random color from a hue ring. Because this `Math.random()` is executed as model code, it is guaranteed that however many times clients call it, they will all be obtaining exactly the same sequence of values.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color() {
         let color = this.randomColor();
         this.style.setProperty("background-color", color);
         this.publish(this.sessionId, "color", color);
     }
-~~~~~~~~
+~~~~~~~~y
 The `color` method is executed when this virtual DOM element is clicked. `this.randomColor()` calls the `randomColor()` method defined by the same expander, and the `background-color` that was set to `black` in `init()` is replaced with the new color. The new color is then also published in a "color" message, using `this.sessionId` as the scope.
 
 `sessionId` is shared across the whole application, so any object in the application can subscribe to messages that have this scope. As shown above, in this example all `DrawModel`s subscribe to these "color" messages, and respond by changing their "color" property.
 
-~~~~~~~~
-function beDrawing(parent, json) {
+~~~~~~~~ JavaScript
+function beDrawing(parent, json, persistentData) {
     let top = parent.createElement();
     let canvas = parent.createElement("CanvasElement");
 
-    canvas.setCode(parent.getLibrary("drawing.DrawModel"));
-    canvas.setViewCode(parent.getLibrary("drawing.DrawView"));
+    canvas.setCode("drawing.DrawModel");
+    canvas.setViewCode("drawing.DrawView");
 
     let color = parent.createElement();
-    color.setCode(parent.getLibrary("drawing.Color"));
+    color.setCode("drawing.Color");
 ~~~~~~~~
 
 `beDrawing`, like the earlier `beCounter`, can be thought of as code that simplifies the process of assembling the DOM tree interactively.
 
 The `canvas` variable is assigned a `CanvasElement` value, and `color` a `div` element. The `CanvasElement`'s model code is set to `DrawModel` code obtained from `library`, and its view code to the library's `DrawView`. Because `color` is a common behavior across all clients, it is only given model code.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color.style.setProperty("width", "60px");
     color.style.setProperty("height", "60px");
     color.style.setProperty("border-radius", "50%");
 ~~~~~~~~
 The styles of individual elements can also be set in this way.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color.domId = "color";
     color.setStyleClasses(`
 #color:hover {
@@ -492,20 +542,23 @@ The styles of individual elements can also be set in this way.
 ~~~~~~~~
 In addition, you can use a special method called `setStyleClasses` to pass as a string a CSS block with CSS selectors. The property `domId`, renamed because the property `id` is already reserved by Croquet, sets the DOM `id` property. The CSS block specifies the style for that id, with and without the `:hover` pseudo-class.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     top.style.setProperty("display", "flex");
     top.style.setProperty("width", "550px");
 
     top.appendChild(canvas);
     top.appendChild(color);
     parent.appendChild(top);
+    if (persistentData) {
+        canvas.call("DrawModel", "loadPersistentData", persistentData);
+    }
     return parent;
 ~~~~~~~~
 These elements are made into a tree structure with `appendChild()` and added to `parent`.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 export const drawing = {
-    expanders: [DrawModel, DrawView, Color],
+    expanders: [DrawModel, DrawView, Color, ClearButton],
     functions: [beDrawing]
 };
 ~~~~~~~~
@@ -518,7 +571,7 @@ The file `skyway/skyway-latest.js` is a SkyWay library.
 
 To run this example, get an API key from [SkyWay](https://webrtc.ecl.ntt.com/developer.html) and create a file called `skyway/key.js` using the actual key you obtained.
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
 ~~~~~~~~
 
@@ -533,7 +586,7 @@ The `setStyleClasses()` method specifies a CSS string that persists until as lon
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 
-<script src="https://croquet.io/sdk/croquet-latest.min.js"></script>
+<script src="https://unpkg.com/@croquet/croquet@0.5.0"></script>
 <script src="../turner.js"></script>
 <script type="text/javascript">
 if (window.location.search !== "") {

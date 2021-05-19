@@ -9,7 +9,7 @@ import {minibrowser} from "../examples/minibrowser.js";
 let library = new Library();
 library.addLibrary("minibrowser", minibrowser);
 
-window.onload = makeMain("minibrowser.beBrowser", {autoSleep: false, appId: "io.croquet.vdom.minibrowser"}, library, null);
+window.onload = makeMain("minibrowser.beBrowser", {autoSleep: false, appId: "io.croquet.vdom.minibrowser", tps: 0}, library, null);
   </script>
 </head>
   <body style="touch-action: none">

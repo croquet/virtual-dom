@@ -27,7 +27,7 @@ export class Button {
         this._set("class", cls);
         this._set("buttonState", state);
         this._set("title", title);
-        this.setViewCode("widgets.ButtonView");
+        this.addViewCode("widgets.ButtonView");
     }
 
     beImmediateViewButton(domId, trait, method) {
@@ -54,7 +54,10 @@ export class Button {
             this.style.setProperty("-cards-dom-title", title);
         }
 
-        if (label.endsWith(".svg")) {
+        if (label.startsWith("<svg")) {
+            let html = `<div style="display: flex" class="no-select ${cls || ''}">${label}</div>`;
+            this.dom.innerHTML = html;
+        } else if (label.endsWith(".svg")) {
             let iconPath = "./assets/icons/";
             this.innerHTML = `<div class="no-select ${cls || ''}" style="background-image: url(${iconPath}${label});"></div>`;
         } else if (label.endsWith(".svgIcon")) {
@@ -83,7 +86,10 @@ export class ButtonView {
     }
 
     setButtonState(state, label, cls, title) {
-        if (label.endsWith(".svg")) {
+        if (label.startsWith("<svg")) {
+            let html = `<div style="display: flex" class="no-select ${cls || ''}">${label}</div>`;
+            this.dom.innerHTML = html;
+        } else if (label.endsWith(".svg")) {
             let iconPath = "./assets/icons/";
             this.dom.innerHTML = `<div class="no-select ${cls || ''}" style="background-image: url(${iconPath}${label});"></div>`;
         } else if (label.endsWith(".svgIcon")) {

@@ -59,13 +59,11 @@ class TextView {
     init() {
         if (!this.loop) {
             this.loop = true;
-            console.log("view.save()");
             this.future(60 * 1000).call("TextView", "save");
         }
     }
 
     save() {
-        console.log("view.save()");
         this.publish(this.model.id, "save");
         this.future(60 * 1000).call("TextView", "save");
     }
@@ -323,7 +321,7 @@ class WidgetView {
 
 class FrameView {
     init() {
-        if (window.parent !== window) {
+        if (window.parent !== window && !Croquet.Messenger.receiver) {
             Croquet.Messenger.setReceiver(this);
             Croquet.Messenger.startPublishingPointerMove();
             Croquet.Messenger.on("userInfo", "handleUserInfo");

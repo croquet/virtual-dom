@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2020-08-10
+  Last Modified: 2021-05-19
 
 # はじめに
 
@@ -67,11 +67,26 @@ Croquet Virtual DOM Frameworkでは、実際のDOMのインターフェイスを
 
 ## 実行
 
-トップディレクトリにあるserver.pyを、ターミナルからPython2またはPython3を使って実行する。
+まずは、Croquet SDKのファイルを`croquet`というディレクトリにコピーする。
+
+~~~~~~~~
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
+~~~~~~~~
+
+`-L`オプションはリダイレクトに従うと言うフラグであり、`https://unpkg.com/@croquet/croquet@0.5.0/pub/croquet.min.js`からコピーしても良い。
+
+トップディレクトリにあるserver.jsをターミナルから`node`を使用して実行する。
+
+~~~~~~~~
+# node server.js &
+~~~~~~~~
+
+もしnode.jsがインストールされていないがPython2またはPython3がインストールされている場合は、`server.py`を使うこともできる。
 ~~~~~~~~
 # python server.py &
 ~~~~~~~~
-デフォルトのポート番号として8000を使っているので、ブラウザで`
+
+どちらのサーバーもデフォルトのポート番号として8000を使っているので、ブラウザで`
 ~~~~~~~~
 http://localhost:8000/apps/counter.html
 ~~~~~~~~
@@ -81,25 +96,27 @@ http://localhost:8000/apps/counter.html
 
 counter.jsのようなファイルを、ここではライブラリーファイルと呼ぶ。ライブラリーは
 
-```
-<クラス定義>
-<クラス定義>...
+```text
+&lt;expander定義&gt;...
 
-<初期化用関数定義>...
+&lt;初期化用関数定義&gt;...
 
-<expandersとfunctionsというプロパティーを持ったexport文>
+&lt;クラス定義&gt;...
+
+&lt;expandersとfunctionsというプロパティーを持ったexport文&gt;
 ```
 
 という構成になっている。counter.jsにあるクラス定義はCounterというクラスひとつだけである。
 
-~~~~~~~~~~~~~~~~~~~~~~~ JavaScript
+~~~~~~~~ JavaScript
 class Counter {
     init() {
-        this.addEventListener("click", "Counter.reset");
+        this.addEventListener("click", "reset");
         if (this._get("count") === undefined) {
             this._set("count", 0);
             this.future(1000).call("Counter", "next");
         }
+        console.log("Counter.init");
     }
 
     next() {
@@ -120,36 +137,37 @@ function beCounter(parent, json) {
     let text = parent.createElement("TextElement");
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
+    text.setDefault("serif", 12);
     parent.appendChild(text);
-    text.setCode(library.parent.getLibrary("counter.Counter"));
+    text.setCode("counter.Counter");
 }
 
 export const counter = {
     expanders: [Counter],
     functions: [beCounter]
 };
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
 以下で一行ずつ説明する。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class Counter {
 ~~~~~~~~
-ここでは`Counter`という名のexpanderを定義している。ライブラリーファイルに書かれたコードは文字列データとして処理されるため、expander外からの「自由変数」を参照することは許されない。ただし、他のexpanderのコードが必要な場合は、「初期化関数」で述べる`library`機能を使う。
+ここでは`Counter`という名のexpanderを定義している。`class`というキーワードが使用されているのは、構文チェッカーがコードを正しく処理できるためであるが、実際にはexpanderが定義されている。言い換えれば、expanderの構文はJavaScriptそのものである。ライブラリーファイルに書かれたコードは文字列データとして処理されるため、expander外からの「自由変数」を参照することは許されない。ただし、他のexpanderのコードが必要な場合は、「初期化関数」で述べる`library`機能を使う。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
   init() {
 ~~~~~~~~
-`init()は、expanderがある要素に「インストール」されるときに自動的に実行される特別なメソッド名である。(ただし、オーサリングツール内でexpanderが編集されることがあり、その場合は編集のたびにinit()が呼び出される。
+`init()は、expanderがある要素に「インストール」されるときに自動的に実行される特別なメソッド名である。(ただし、オーサリングツール内でexpanderが編集されることがあり、その場合は編集のたびにinit()が呼び出される。)
 
-~~~~~~~~
-        this.addEventListener("click", "Counter.reset");
+~~~~~~~~ JavaScript
+        this.addEventListener("click", "reset");
 ~~~~~~~~
 このexpanderがインストールされた仮想DOM要素にDOMのclickイベントが発生した場合のイベントハンドラーを追加する。内部的には、実際のDOM要素にclickハンドラーが追加され、ユーザーがクリックをした場合にはそれがこのexpanderに配送される。"Counter.reset"は、「そのイベントが発生した時は、`Counter`という名前でインストールされたexpanderの`reset`メソッドを呼び出すという意味である。
 
 メソッド内の`this`は、expanderではなくそれがインストールされたDOM要素を指す。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
         if (this._get("count") === undefined) {
             this._set("count", 0);
         }
@@ -158,16 +176,15 @@ class Counter {
 
 `_get()`と`_set()`は仮想DOM要素のプロパティを読み書きするためのメソッドである。仮想DOM要素はJSON化可能な値だけを保持することができるが、単純にドット表記で読み書きできるようにしてしまうと、ついつい自由変数を持った関数などをしまってしまうため、「JSON化できるオブジェクトだけが格納できる」ということを覚えておき、さらに内部的に使用しているプロパティー名と衝突しないようにするために、敢えて`_get()`と`_set()`という冗長な表記にしている。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
             this.future(1000).call("Counter", "next");
-        }
 ~~~~~~~~
 
 `future()`は`setTimeout()`のようなものである。引数には論理時間でのミリ秒を指定する。reflectorが送ってくるheartbeatを元に、参加している全てのクライアントが指定された時間が経過した後で、その後に指定されているメソッドを起動する。通常は、この論理時間は実時間と同期されているので、実時間でも約1000ミリ秒である。
 
 この場合に指定されているのは`call()`というメソッドであり、「`Counter`という名前でインストールされているexpanderの`next`というメソッドを起動する」という意味である。近い将来、他のexpanderメソッドの呼び出しと同様に、`this.future(1000).next()`とexpanderの名前を書かなくても良くなり、その場合には「同じexpander」が暗黙的に指定されている」こととなる予定である。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     next() {
         let c = this._get("count") + 1;
         this._set("count", c);
@@ -188,38 +205,38 @@ class Counter {
 ~~~~~~~~
 `count`プロパティーを0にし、また`text`要素としての`value`も"0"にする、`init()`で指定されていたように、`click`イベントが発生した場合に呼ばれるものである。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 function beCounter(parent, json) {
 ~~~~~~~~
 こちらは、アプリケーションが使用する仮想DOM要素を作る関数である。イメージとしては、対話的にインターフェイス・ビルダー内で要素を作り、スタイルやプロパティーをセットする、という手作業を関数として書き起こしたものと思うことができる。
 
 `parent`は、この「アプリケーション」を作る際に親となる仮想DOM要素である。`json`はひとまずは無視して良い。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     let text = parent.createElement("TextElement");
 ~~~~~~~~
-仮想DOM要素は`document.createElement()`の代わりに、`任意の仮想DOM要素.createElement()`で生成する。基本的な設計方針としては、ほとんどの処理は`div`要素を使うことによりなるべく「全てを同じ種類のオブジェクトで作る」ようにすることである。ただし、いくつか特殊な機能を提供する要素は`div`では代替できないため、text要素、video要素、iframe要素、そしてcanvas要素が存在し、それらは引数にタイプを指定することにより生成できる。
+仮想DOM要素は`document.createElement()`の代わりに、`任意の仮想DOM要素.createElement()`で生成する。基本的な設計方針としては、できるだけ`div`要素のみを使うことによりなるべく「全てを同じ種類のオブジェクトで作る」ようにすることである。ただし、いくつか特殊な機能を提供する要素は`div`では代替できないため、text要素、video要素、iframe要素、そしてcanvas要素が存在し、それらは引数にタイプを指定することにより生成できる。
 
 この例では、文字列を表示するために仮想text要素を生成している。(が、実際には協調編集機能は必要ないため、divを使っても問題はない。)
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
 ~~~~~~~~
 仮想DOM要素は、style、classListなどの基本的なプロパティーを持っており、それを用いてCSSスタイルを設定することができる。CSSクラスの設定方法はのちに説明する。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     parent.appendChild(text);
 ~~~~~~~~
 このようにして生成した要素を、appendChild()でDOMツリーに追加する。
 
-~~~~~~~~
-    text.setCode(parent.getLibrary("counter.Counter"));
+~~~~~~~~ JavaScript
+    text.setCode("counter.Counter");
 }
 ~~~~~~~~
 そして、その要素の動作を設定するために`setCode`というメソッドを使用し、関連するHTMLファイル内で作成されたlibraryに登録されている"counter"ライブラリの"Counter"というexpanderを指定する。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 export const counter = {
     expanders: [Counter],
     functions: [beCounter]
@@ -228,47 +245,45 @@ export const counter = {
 counter.jsのようなライブラリー・ファイルからは、`expanders`と`functions`というプロパティーを持ったオブジェクトをexportする。上記の`parent.getLibrary("counter.Counter")`とは、`counter`という名前でexportされているライブラリーから、`Counter`を取得するという意味である。(`expanders`と`functions`は内部で別の処理をされた後で、一つのオブジェクトにまとめられると考えれば良い。)
 
 これを呼び出すcounter.htmlは以下のようになっている。
-~~~~~~~~
-&lt;html>
-  &lt;head>
-    &lt;meta charset="UTF-8">
-  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js">&lt;/script>
-  &lt;script type="module">
+~~~~~~~~ HTML
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js">&lt;/script&gt;
+  &lt;script type="module"&gt;
 import {makeMain, Library} from "./src/framework.js";
 
 import {counter} from "./examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
 
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
-  &lt;/script>
-&lt;/head>
-  &lt;body style="touch-action: none">
-    &lt;div id="croquet-root" style="width: 100%; height: 100%">&lt;/div>
-  &lt;/body>
-&lt;/html>
+window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
+  &lt;/script&gt;
+&lt;/head&gt;
+  &lt;body style="touch-action: none"&gt;
+    &lt;div id="croquet-root" style="width: 100%; height: 100%"&gt;&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
 ~~~~~~~~
 
+~~~~~~~~ HTML
+  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js">&lt;/script&gt;
 ~~~~~~~~
-  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js">&lt;/script>
-~~~~~~~~
-Croquetライブラリをロードする。ここでは`croquet`ディレクトリにこのファイルがコピーされていることを仮定しているが
+Croquetライブラリをロードする。ここでは`croquet`ディレクトリにこのファイルがコピーされていることを仮定しているが、安定版を`https://unpkg.com/@croquet/croquet@0.5.0`から読みこむようにしても良い。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 import {makeMain, Library} from "./src/framework.js";
 
 import {counter} from "./examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
-
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
 ~~~~~~~~
 main.jsから`makeMain`を、library.jsから`Library`をimportするのは、このパターンに従う限りはどのようなアプリケーションでも同じである。自分が作ったライブラリーであるcounter.jsをimportし、`Library`のインスタンスに登録する。
 
+~~~~~~~~ JavaScript
+window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
 ~~~~~~~~
-window.onload = makeMain("counter.beCounter", {autoSleep: false}, library, true, false);
-~~~~~~~~
-  の行は、`counter.beCounter`として登録されている関数をエントリポイントとし、そのセッションのオプションとして[Croquet SDK Document](https://croquet.io/sdk/docs)に記述されているオプションの一つautoSleepを指定し、上記で作成した`library`オブジェクトを渡してonloadハンドラとして呼び出せる関数を作っている。最後から二番目の引数はそのページにアクセスした時に新しい共有セッションを自動的に作り、URLハッシュとして追加するかどうかのフラグ、最後のものはオーサリングツールとともに起動するかどうかのフラグである。
+の行は、`counter.beCounter`として登録されている関数をエントリポイントとし、そのセッションのオプションとして[Croquet SDK Document](https://croquet.io/sdk/docs)に記述されているオプションの一つautoSleepを指定し、上記で作成した`library`オブジェクトを渡してonloadハンドラとして呼び出せる関数を作っている。最後の引数は、もし文字列を渡した場合はそれをセッションのIDとし、もしfalsyであれば自動的にURLから新しいセッションIDを作るという意味である。
 
 # 新しいアプリケーションの開発とデバッグ
 
@@ -289,19 +304,23 @@ http://localhost:8000/counter.html?isLocal
 
   次にクライアントごとにビューが異なる状態を持つ例として、簡単なお絵描きプログラムの例を紹介する。こちらは、一つのライブラリーファイルに複数のexpanderを書き、ビューにもコードを追加する例である。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class DrawModel {
     init() {
         this._set("color", "black");
-        this.subscribe(this.id, "line", "DrawModel.line");
-        this.subscribe(this.sessionId, "color", "DrawModel.color");
+        this.subscribe(this.id, "line", "line");
+        this.subscribe(this.sessionId, "color", "color");
+        this.subscribe(this.sessionId, "clear", "clear");
+        this.subscribe(this.id, "pointerUp", "savePersistentData");
     }
 ~~~~~~~~
 このモデルは`color`と、以下に述べる`lines`を状態として持ち、ビューとの通信のために`subscribe()`を呼んでいる。`subscribe()`の引数は、`scope`と呼ばれる第1引数と第2引数が、「そのメッセージに興味を示しているオブジェクト間で合意されているメッセージのキー」、そして`subscribe()`の第３引数は、そのメッセージが来た時に呼び出されるexpanderとそのメソッドの名前を"."でつないだものである。
 
 "line"メッセージの方は、このモデル・オブジェクトのことを知っているビュー・オブジェクトのみから"line"メッセージを受け取りたいので、「このモデル・ビューのペアだけが興味を持っている」という意味で、`this.id`をscopeとしている。"color"の方は、別の仮想DOM要素であるボタンが押された時に、そのボタンから、「このセッションで使われているオブジェクト全て」に当ててメッセージを送ることとしているので、`this.sessionId`という、全てのオブジェクトが共通の値を得ることができるものをscopeとしている。
 
-~~~~~~~~
+Croquetはセッションを永続化し、コードが変更された将来も状態を引き継いていく仕組みが用意されている。開発者はアプリケーションの本質的な部分だけを保存するコードを書くことができ、それをいつ保存するかも制御できる。新しいコードが使われた場合にも、アプリケーションの状態を再構成することができる。このお絵かきプログラムの例では、`lines`は本質的だが、`color`は失われても構わないという判断がなされている。viewから`pointerUp`というイベントが送られてきたときに永続化データを保存することとしている。
+
+~~~~~~~~ JavaScript
     line(data) {
         if (!this._get("lines")) {
             this._set("lines", []);
@@ -310,46 +329,56 @@ class DrawModel {
 
   この"line"メッセージは、ユーザーが画面上でマウスで線を引く動作をした時に、ビューからモデルに送られる。Croquetで気をつけないといけないのは、「すでに他の人々によってある程度線が引かれたあとで、別のクライアントが参加してくる」という場合である。その場合、モデルとして「過去の線分に関する情報」を保持しておく必要があるため、"lines"というプロパティーに保存しておく。`init()`の中でしても良いが、ここでは最初の線分の情報が来た時に"lines"を作ってみよう。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
         let line = {...data, color: this._get("color")};
         this._get("lines").push(line);
 ~~~~~~~~
   `{command: "line", from: {x, y}, to: {x, y}}`というオブジェクトが`data`として送られてくる。これに`color`を追加したオブジェクトを"lines"に追加する。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
   this.publish(this.id, "drawLine", line);
     }
 ~~~~~~~~
 そして、今度はモデルからビューへの`drawLine`メッセージとして、このオブジェクトを送信する。メッセージとして送れるのはJSON化できるオブジェクトだけであるということには注意が必要である。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color(color) {
         this._set("color", color);
     }
 ~~~~~~~~
 "color"メッセージを受け取った時は、次の"line"メッセージが来た時に備えてプロパティに保存しておく。
 
-~~~~~~~~
+`savePersistentData()`と`loadPersistentData()`は、Croquetのセッション永続化APIを読んでいる。保存される永続化データは開発者が自由に決定できるが、最低限必要なもののみを保存することが推奨されている。
+
+~~~~~~~~ JavaScript
 class DrawView {
     init() {
-        this.addEventListener("mousedown", "DrawView.mouseDown");
+        this.addEventListener("pointerdown", "pointerDown");
 ~~~~~~~~
-  `DrawView`は上記の`DrawModel`に対応する`View`にインストールされるexpanderである。`View`のexpanderもまたDOMイベントに対してaddEventListenerでイベントハンドラーを登録することができる。
+`DrawView`は上記の`DrawModel`に対応する`View`にインストールされるexpanderである。`View`のexpanderもまたDOMイベントに対してaddEventListenerでイベントハンドラーを登録することができる。
 
-~~~~~~~~
-        this.subscribe(this.model.id, "drawLine", "DrawView.drawLine");
-~~~~~~~~
-  `DrawModel.line()`の最後の行で、`this.publish(this.id, "drawLine", line);`により、Modelの`id`をscopeとし、"drawLine"を名前とするメッセージが送信されていた。`ElementView`は、対応する`Element`オブジェクトそのものを、`this.model`として保持しており、Modelからの値の読み出しを自由にすることができる。
+2021年の時点では、すでにほとんど全てのブラウザーでDOM PointerEventがサポートされている。Virtual DOMのアプリケーションを新たに作るときには、PointerEventのみを使用し、MouseEventやTouchEventは一切使用しないことが推奨されている。
 
-  ここで`publish`されるメッセージを受け取るために、同じscopeと同じ名前で`DrawView`の方で`subscribe()`を呼ぶ。これにより、DrawModelとDrawViewの特定のインスタンス間で、"drawLine"というメッセージの送受信が行われるようになる。
-
+~~~~~~~~ JavaScript
+        this.subscribe(this.model.id, "drawLine", "drawLine");
 ~~~~~~~~
+`DrawModel.line()`の最後の行で、`this.publish(this.id, "drawLine", line);`により、Modelの`id`をscopeとし、"drawLine"を名前とするメッセージが送信されていた。`ElementView`は、対応する`Element`オブジェクトそのものを、`this.model`として保持しており、Modelからの値の読み出しを自由にすることができる。
+
+ここで`publish`されるメッセージを受け取るために、同じscopeと同じ名前で`DrawView`の方で`subscribe()`を呼ぶ。これにより、DrawModelとDrawViewの特定のインスタンス間で、"drawLine"というメッセージの送受信が行われるようになる。
+
+~~~~~~~~ JavaScript
+        this.subscribe(this.model.id, "cleared", "clear");
+~~~~~~~~
+
+`DrawModel`が`clear`メッセージを受け取ると、`lines`のをクリアした後で`cleared`というメッセージを送信する。DrawViewがそれを受け取ったときには、canvasの内容を消去する。
+
+~~~~~~~~ JavaScript
         this.initDraw();
     }
 ~~~~~~~~
 同じexpanderで定義されているメソッド`initDraw()`を呼ぶ。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     initDraw() {
         if (!this.model._get("lines")) {return;}
         this.model._get("lines").forEach(data => {
@@ -363,52 +392,53 @@ class DrawView {
 
 `drawLine()`はexpanderのメソッドだが、「同じexpanderのメソッドを呼ぶ時は、`this.`で呼ぶことができる。`this.drawLine(data)`が`DrawView` expanderのメソッドで使われているため、この呼び出しは`this.call("DrawView", "drawLine", data)と等価である。
 
-~~~~~~~~
-    mouseDown(evt) {
+~~~~~~~~ JavaScript
+    pointerDown(evt) {
 ~~~~~~~~
 `init()`の中で、DOMイベントのハンドラーとして登録されているメソッドである。
 
+~~~~~~~~ JavaScript
+       if (evt.buttons !== 1) {return;}
+       this.setPointerCapture(evt.pointerId);
 ~~~~~~~~
-        let mouseMove = (evt) => {
-~~~~~~~~
-お絵かきのように、マウスボタンが押されてから離される間だけmousemoveを追跡したい、そして、その間は、マウスポインターがDOM要素の表示領域を出てしまっても、またはmouseupが領域外で発生したとしてもそれらを処理する必要があるため、mousemoveやmouseupのハンドラーは、mousedownがあって初めて設定し、mouseupがあった時には解除する必要がある。この`mouseMove`関数はそのための関数である。
 
-~~~~~~~~
+お絵かきのように、マウスボタンが押されてから離される間だけpointermoveを追跡したい、そして、その間は、マウスポインターがDOM要素の表示領域を出てしまっても、またはpointerupが領域外で発生したとしてもそれらを処理する必要があるため、pointermoveやpointerupのハンドラーは、pointerdownがあったときに初めて設定し、pointerupがあった時には解除する必要がある。この`pointerMove`関数はそのための関数である。
+
+~~~~~~~~ JavaScript
             if (this.lastPoint) {
                 let p = {x: evt.offsetX, y: evt.offsetY};
                 this.publish(this.model.id, "line", {command: "line", from: this.lastPoint, to: p});
                 this.lastPoint = p;
             }
 ~~~~~~~~
-この`mouseMove`の中では、ビューに`lastPoint`というプロパティーが設定されている場合、`lastPoint`から、今のmousemoveの`(offsetX, offsetY)`までの線分が引かれるように、"line"というメッセージをpublishする。scopeがthis.model.idなので、同じscopeを使っているオブジェクトにのみ配送される。そして、`lastPoint`を新しいポインターの位置に更新する。
+この`pointerMove`の中では、ビューに`lastPoint`というプロパティーが設定されている場合、`lastPoint`から、今のpointermoveの`(offsetX, offsetY)`までの線分が引かれるように、"line"というメッセージをpublishする。scopeがthis.model.idなので、同じscopeを使っているオブジェクトにのみ配送される。そして、`lastPoint`を新しいポインターの位置に更新する。
 
 ビューの場合は任意のオブジェクトをプロパティーに格納してもよいので、現時点では`this.プロパティー名`を使っても良いことになっている。ただし、システムが使用しているプロパティー名を使ってしまうと問題があるので、将来的には何らかの対処が行われる可能性がある。
 
+~~~~~~~~ JavaScript
+    pointerUp(_evt) {
+        this.removeEventListener("pointermove", "pointerMove");
+        this.removeEventListener("pointerup", "pointerUp");
+        this.lastPoint = null;
+        this.releaseAllPointerCapture();
+        this.publish(this.model.id, "pointerUp");
+    }
 ~~~~~~~~
-        let mouseUp = (evt) => {
-            document.removeEventListener("mousemove", this.mousemove);
-            document.removeEventListener("mouseup", this.mouseup);
-            this.lastPoint = null;
-        };
-~~~~~~~~
-`mouseUp`の中では、`document`に一時的に追加されたハンドラーを解除し、`lastPoint`もクリアする。
+`pointerUp`の中では、`document`に一時的に追加されたハンドラーを解除し、`lastPoint`もクリアする。 releaseAllPointerCapture()は、ブラウザのreleasePointCapture()を呼び出す補助関数であり、キャプチャしたポインターを解放する。
 
-~~~~~~~~
-        this.mousemove = mouseMove.bind(this);
-        this.mouseup = mouseUp.bind(this);
-
+~~~~~~~~ JavaScript
         let offsetX = evt.offsetX;
         let offsetY = evt.offsetY;
         this.lastPoint = {x: offsetX, y: offsetY};
 
-        document.addEventListener("mousemove", this.mousemove);
-        document.addEventListener("mouseup", this.mouseup);
+        this.addEventListener("pointermove", this.pointerMove);
+        this.addEventListener("pointerup", this.pointerup);
 ~~~~~~~~
- ここはまだmouseDown内の処理であるが、上記の関数二つに`this`をbindしてプロパティーにしまい、`lastPoint`もmousedownが起こった場所としている。さらに、mouseupが起こるまでの間は、documentにそれらの関数をイベントハンドラーとして登録する。
+ ここはまだ`pointerDown`内の処理であるが、`lastPoint`にpointerdownの座標をしまい、pointerupが起こるまでの間は、pointermoveとpointerupを処理するようにハンドラーを登録する。
 
 ここで注意すべきは実際に送られるイベントの型である。「仮想DOMシステムを通じて配送されるイベントは、調理済み(cooked)で、クライアントごとの違いをなるべく吸収した形でやや抽象的な値のみが含まれたオブジェクトが送られるが、ここでの`mouseMove`や`mouseUp`のように実際のDOM要素に直接登録されたハンドラーにはもともとのDOMイベントが届く。プログラムの方で、「`offsetX`だけを使う」などのように、矛盾が生じない値のみを使うか、`this.cookEvent()`を呼び出して、仮想的なイベントに変換する必要がある。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     drawLine(data) {
         let ctx = this.dom.getContext("2d");
         ctx.lineWidth = 2;
@@ -421,10 +451,10 @@ class DrawView {
 ~~~~~~~~
 モデルから送られてきた"drawLine"メッセージのdataを使い、`this.dom`に格納されている実際のDOM要素に描画をする。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 class Color {
     init() {
-        this.addEventListener("click", "Color.color");
+        this.addEventListener("click", "color");
         this.style.setProperty("background-color", "black");
     }
 ~~~~~~~~
@@ -432,7 +462,7 @@ class Color {
 
 `init()`の中では、clickイベントがあった時にこのexpanderの`color`というメソッドを呼び出すことが指定されており、また仮想DOMのスタイルとして、`background-color`が`black`と指定されている。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     randomColor() {
         let h = Math.floor(Math.random() * 256);
         let s = "100%";
@@ -442,7 +472,7 @@ class Color {
 ~~~~~~~~
 `randomColor()`は、色相環上からランダムな色を取り出す。この`Math.random()`はモデルのコードとして実行されるので、どのクライアント上でも同じ回数だけ呼べば同じ値が得られる保証されている。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color() {
         let color = this.randomColor();
         this.style.setProperty("background-color", color);
@@ -453,30 +483,30 @@ class Color {
 
 `sessionId`はアプリケーション全体で共通であり、アプリケーション内のオブジェクトでthis.sessionId`をscopeとしてsubscribeしているオブジェクトにメッセージが届く。この例では、`DrawModel`がsubscribeしており、それが"color"プロパティーを変更することとなる。
 
-~~~~~~~~
-function beDrawing(parent, json) {
+~~~~~~~~ JavaScript
+function beDrawing(parent, json, persistentData) {
     let top = parent.createElement();
     let canvas = parent.createElement("CanvasElement");
 
-    canvas.setCode(parent.getLibrary("drawing.DrawModel"));
-    canvas.setViewCode(parent.getLibrary("drawing.DrawView"));
+    canvas.setCode("drawing.DrawModel");
+    canvas.setViewCode("drawing.DrawView");
 
     let color = parent.createElement();
-    color.setCode(parent.getLibrary("drawing.Color"));
+    color.setCode("drawing.Color");
 ~~~~~~~~
 
 `beDrawing`も、`beCounter`と同様に、DOMツリーを対話的に組み立てるところをコードで簡便化している考えれば良い。
 
 `canvas`という変数に`CanvasElement`を代入し、`color`という変数に`div`相当の要素を代入する。`canvas`のモデルのコードは`library`を経由して得られた`DrawModel`のコードであり、そのビューのコードは`DrawView`である。`color`は全クライアントで共通の振る舞いなので、モデルのコードだけが設定されている。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color.style.setProperty("width", "60px");
     color.style.setProperty("height", "60px");
     color.style.setProperty("border-radius", "50%");
 ~~~~~~~~
 個々の要素のスタイルは、このように設定することもできる。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     color.domId = "color";
     color.setStyleClasses(`
 #color:hover {
@@ -489,20 +519,23 @@ function beDrawing(parent, json) {
 ~~~~~~~~
 また、`setStyleClasses`という特別なメソッドを使い、CSSセレクター付きのCSSブロックを文字列として渡すこともできる。`domId`というプロパティーは、`id`というプロパティーがすでにCroquetが予約しているために、名前を変えているが、DOMの`id`プロパティーを設定する。CSSブロックの中には、そのidに対するスタイルが`:hover`擬似クラスありとなしとのケースに分けて指定されている。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
     top.style.setProperty("display", "flex");
     top.style.setProperty("width", "550px");
 
     top.appendChild(canvas);
     top.appendChild(color);
     parent.appendChild(top);
+    if (persistentData) {
+        canvas.call("DrawModel", "loadPersistentData", persistentData);
+    }
     return parent;
 ~~~~~~~~
 これらの要素を`appendChild()`で木構造とし、`parent`に追加して完了である。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 export const drawing = {
-    expanders: [DrawModel, DrawView, Color],
+    expanders: [DrawModel, DrawView, Color, ClearButton],
     functions: [beDrawing]
 };
 ~~~~~~~~
@@ -516,7 +549,7 @@ skyway/skyway-latest.jsはSkyWayのライブラリーである。
 この例題を実行するためには、[SkyWay](https://webrtc.ecl.ntt.com/developer.html)から
 APIキーを取得し、skyway/key.jsというファイルを実際に取得したキーを使って作成する。
 
-~~~~~~~~
+~~~~~~~~ JavaScript
 export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
 ~~~~~~~~
 
@@ -528,14 +561,14 @@ export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
 `apps/text-chat.html`, `examples/text-chat.js`に、簡単なテキストベースのチャットが実装されている。ここで紹介されている機能として、外観を整えるためにCSSのクラス定義をするものがある。アプリケーションの初期化をする`beChat`関数内で、`setStyleClasses()メソッドにより、その要素がDOMツリー内に存在する限り定義されるCSSクラスを指定することができる。`domId` プロパティーは実際のDOM要素の`id`プロパティーとなり、`classList.add()`で追加されたCSSクラス名もそのまま実際のDOM要素に追加される。
 
 仮想DOM要素が削除された際にはsetStyleClasses()で指定されたCSS文字列も自動的に削除されるので、コードの構成方法としては、最上位の`chat`要素に全てのスタイルを記述するのではなく、それぞれの要素に追加することも考えられる。ただ、この例のように同種の要素が多数生成・削除されるような場合は、最上位要素に全て記述した方が簡潔である。
-    
+
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 
-<script src="https://croquet.io/sdk/croquet-latest.min.js"></script>
+<script src="https://unpkg.com/@croquet/croquet@0.5.0"></script>
 <script src="../turner.js"></script>
 <script type="text/javascript">
 if (window.location.search !== "") {
     Croquet.Session.join(window.location.href, SimplePageModel, SimplePageView, {tps: 0})
-	.then((session) => session.view.initPointerMove());
+	.then((session) => session.view.initCroquetMessenger());
 }
 </script>

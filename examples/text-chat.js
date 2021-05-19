@@ -18,10 +18,10 @@ limitations under the License.
 
 class ChatModel {
     init() {
-        this.subscribe(this.id, "newPost", "ChatModel.newPost");
-        this.subscribe(this.id, "typing", "ChatModel.typing");
-        this.subscribe(this.id, "reset", "ChatModel.reset");
-        this.subscribe(this.id, "setLimit", "ChatModel.setLimit");
+        this.subscribe(this.id, "newPost", "newPost");
+        this.subscribe(this.id, "typing", "typing");
+        this.subscribe(this.id, "reset", "reset");
+        this.subscribe(this.id, "setLimit", "setLimit");
 
         if (!this._get("history")) {
             this._set("history", []); //[{nickname, string, text: string}]
@@ -40,7 +40,8 @@ class ChatModel {
         this._set("limit", number);
         let post = {nickname: "(system)",
                     text: `history limit is set to ${number}.`,
-                    userColor: "#000000"};
+                    userColor: "#000000",
+                    timestamp: Date.now()};
         this.newPost(post);
     }
 
@@ -65,7 +66,7 @@ class ChatModel {
         }
         this._set("history", history);
         this.savePersistentData();
-        
+
     }
 
     reset() {
@@ -113,14 +114,21 @@ class ChatView {
             this.sendButton.addEventListener("pointercancel", (evt) => this.sendPointerUp(evt));
             this.sendButton.addEventListener("pointerout", (evt) => this.sendPointerUp(evt));
             this.sendButton.addEventListener("pointerleave", (evt) => this.sendPointerUp(evt));
+
+            this.sounds = {};
+            for (const asset of ["message", "enter", "leave"]) {
+                this.sounds[asset] = new Audio(`../assets/sounds/${asset}.mp3`);
+            };
+
+            this.users = new Set();
         }
 
         this.isTyping = {time: 0, string: ""};
 
         this.refresh();
-        this.subscribe(this.model.id, "append", "ChatView.trimAndAppend");
-        this.subscribe(this.model.id, "refresh", "ChatView.refresh");
-        this.subscribe(this.model.id, "updateTyping", "ChatView.updateTyping");
+        this.subscribe(this.model.id, "append", "newMessage");
+        this.subscribe(this.model.id, "refresh", "refresh");
+        this.subscribe(this.model.id, "updateTyping", "updateTyping");
 
         window.document.addEventListener("wheel", (evt) => this.wheel(evt), {passive: false, capture: false});
         this.textOut.addEventListener("wheel", (evt) => this.textWheel(evt));
@@ -174,6 +182,9 @@ class ChatView {
             }
         }
         this.userColor = data.userColor || this.randomColor(this.viewId);
+
+        let post = {nickname: "(meta)", text: `${data.nickname} (${data.initials}) entered`, userColor: this.userColor, timestamp: Date.now()};
+        this.publish(this.model.id, "newPost", post)
     }
 
     handleUserCursor(data) {
@@ -186,7 +197,11 @@ class ChatView {
     }
 
     handleAllUserInfo(data) {
-        this.publish(this.sessionId, "userCountChanged", Object.keys(data).length);
+        let users = new Set(Object.keys(data));
+        this.publish(this.sessionId, "userCountChanged", users.size);
+        for (let user of this.users) if (user !== this.viewId && !users.has(user)) { this.sounds.leave.play().catch(_=>_); break; }
+        for (let user of users) if (user !== this.viewId && !this.users.has(user)) { this.sounds.enter.play().catch(_=>_); break; }
+        this.users = users;
     }
 
     handleAppInfoRequest() {
@@ -232,16 +247,17 @@ class ChatView {
             this.enableButton(false);
             return;
         }
-        let post = {nickname: this.nickname.value, text: this.textIn.value, userColor: this.userColor};
+        let post = {nickname: this.nickname.value, text: this.textIn.value, userColor: this.userColor, timestamp: Date.now()};
         this.textIn.value = "";
         this.checkTyping();
         this.enableButton(false);
         this.publish(this.model.id, "newPost", post);
     }
 
-    trimAndAppend(item) {
+    newMessage(item) {
         this.trim();
         this.append(item);
+        this.sounds.message.play().catch(_=>_);
     }
 
     trim() {
@@ -251,6 +267,13 @@ class ChatView {
     }
 
     append(item) {
+        if (item.timestamp) {
+            let date = new Date(item.timestamp).toLocaleDateString();
+            if (date !== this.date) {
+                if (this.date) this.textOut.insertBefore(document.createElement("hr"), this.typers);
+                this.date = date;
+            }
+        }
         this.textOut.insertBefore(this.html(item), this.typers);
         this.scroll();
     }
@@ -279,7 +302,14 @@ class ChatView {
     }
 
     html(item) {
-        let {nickname, userColor, text} = item;
+        let {nickname, userColor, text, timestamp} = item;
+
+        if (nickname === "(meta)") {
+            let div = document.createElement("div");
+            div.className = "metaLine";
+            div.innerHTML = this.message(timestamp, text);
+            return div;
+        }
 
         if (!nickname) {
             nickname = String.fromCodePoint(0x1F601);
@@ -308,14 +338,12 @@ class ChatView {
         let initialsColor = "white";
 
         let avatar = this.avatar(nickname, userColor, fillColor, initialsColor);
-        let message = this.message(text);
+        let message = this.message(timestamp, text);
 
-        let html = `<div id="chatLine" class="chatLine">
-                      ${avatar} ${message}
-                    </div>`;
         let div = document.createElement("div");
-        div.innerHTML = html;
-        return div.firstChild;
+        div.className = "chatLine";
+        div.innerHTML = `${avatar} ${message}`;
+        return div;
     }
 
     randomColor(viewId) {
@@ -357,8 +385,20 @@ class ChatView {
 </svg>`;
     }
 
-    message(text) {
-        return `<div class="message"><div class="messageContent">${text}</div></div>`;
+    message(timestamp, text) {
+        let sent = timestamp ? this.formatTimestamp(timestamp) : "";
+        return `<div class="message"><div class="messageTime">${sent}</div><div class="messageContent">${text}</div></div>`;
+    }
+
+    formatTimestamp(timestamp) {
+        let date = new Date(timestamp);
+        let time;
+        try { time = date.toLocaleTimeString([], {timeStyle: "short"}) } catch (err) { time = date.toLocaleTimeString(); }
+        let midnight = new Date().setHours(0,0,0,0);
+        if (date >= midnight) return time;
+        let day;
+        try { day = date.toLocaleDateString([], {dateStyle: "short"}) } catch (err) { day = date.toLocaleDateString(); }
+        return `${day} ${time}`;
     }
 
     wheel(evt) {
@@ -481,11 +521,11 @@ class UserListView {
         let label = document.createElement("div");
         this.label = label;
         this.dom.appendChild(label);
-        this.subscribe(this.sessionId, "userCountChanged", "UserListView.setUserCount");
+        this.subscribe(this.sessionId, "userCountChanged", "setUserCount");
     }
 
     setUserCount(n) {
-        let fragment = (n <= 1) ? "user" : "users";
+        let fragment = (n === 1) ? "user" : "users";
         this.label.innerHTML = `<span>${n} ${fragment} in the session</span>`;
     }
 }
@@ -493,6 +533,7 @@ class UserListView {
 function beChat(parent, _json, persistentData) {
     parent.style.setProperty("background-color", "transparent");
     let chat = parent.createElement();
+    chat.beWellKnownAs("appModel");
     chat.domId = "chat";
 
     chat.setStyleClasses(`
@@ -540,9 +581,10 @@ body {
 
 .userList {
     font-family: Poppins;
-    font-size: 13px;
+    font-size: 10px;
     margin-left: auto;
     white-space: nowrap;
+    padding: 5px 10px 4px 10px;
 }
 
 .hidden {
@@ -553,7 +595,6 @@ body {
     flex-grow: 2;
     padding: 10px;
     overflow-x: hidden;
-    overflow-y: scroll;
 }
 
 #chat[transparency="true"] #textOutHolder {
@@ -581,7 +622,7 @@ body {
     // border-radius: 9px;
     background-color: #E6E6E6;
     box-shadow: inset -2px -2px 2px 0 rgba(240,240,240.0.3), inset 2px 2px 2px 0 rgba(0,35,46,0.08);
-    padding: 10px;
+    padding-left: 10px;
 }
 
 #textIn:hover {
@@ -625,6 +666,15 @@ body {
   margin-top: 8px;
 }
 
+.metaLine {
+    display: flex;
+    color: #999;
+}
+
+hr {
+    border-top: 1px dashed #CCC;
+}
+
 .person {
   width: 32px;
   height: 32px;
@@ -642,7 +692,7 @@ body {
   margin-right: 12px;
 }
 
-.messageContent {
+.messageContent,.messageTime {
   font-family: Poppins;
   font-size: 14px;
   letter-spacing: 0;
@@ -651,6 +701,11 @@ body {
   height: fit-content;
 }
 
+.messageTime {
+    float: right;
+    font-size: 10px;
+    color: lightgray;
+}
 
 @keyframes blinker {
   50% {
@@ -722,7 +777,7 @@ body {
     if (persistentData) {
         chat.call("ChatModel", "loadPersistentData", persistentData);
     }
-    
+
     return parent;
 }
 

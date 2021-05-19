@@ -1,6 +1,6 @@
 # Croquet Virtual DOM
 
-last modified on 2020-10-01, or Oct 1st, 2020
+last modified on 2021-05-19, or May 19th, 2021
 
 ## Introduction
 Croquet Virtual DOM is an application framework that helps to develop an application based on the Document Object Model and real time collaboration over the Croquet library.
@@ -12,10 +12,12 @@ For basic concepts and examples, please refer to `docs/en/vdom.md.html`.
 There is exactly one external dependency, which is the Croquet SDK library. You can simply copy the SDK to your local directory:
 
 ~~~~~~~~
-# mkdir -p croquet; curl -o croquet/croquet-latest.min.js https://croquet.io/sdk/croquet-latest.min.js
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
 ~~~~~~~~
 
-You can also change the `script` tag of your html file to refer to the latest code at `https://croquet.io/sdk/croquet-latest.min.js` to stay with the latest SDK during development.
+The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@0.5.0/pub/croquet.min.js`.
+
+You can also change the `script` tag of your html file to refer to the latest code at `https://unpkg.com/@croquet/croquet@0.5.0`.  The advantage of copying the file to a local directory is that you can develop your application off the internet.
 
 An application can be developed without using npm or additional package manager. You can run the simple http server (written in JavaScript):
 

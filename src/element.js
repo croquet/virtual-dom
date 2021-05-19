@@ -148,7 +148,7 @@ export class TopModel extends M {
 TopModel.register("TopModel");
 
 export class Element extends M {
-    init(options) {
+    init(_options) {
         super.init();
         this._childNodes = []; // [ElementRef]
         this._parentNode = undefined; // ElementRef
@@ -209,17 +209,30 @@ export class Element extends M {
 
     subscribe(scope, event, methodName) {
         const topic = scope + ":" + event;
+
+        let trait = this._trait;
+        if (trait) {
+            trait = trait.constructor.name;
+        }
+
+        let fullMethodName;
+        if (methodName.indexOf(".") >= 1 || !trait) {
+            fullMethodName = methodName;
+        } else {
+            fullMethodName = `${trait}.${methodName}`;
+        }
+
         if (this.subscriptions[topic]) {
-            if (this.subscriptions[topic] === methodName) {
+            if (this.subscriptions[topic] === fullMethodName) {
                 // console.log('already subscribed');
                 return;
             }
             this.unsubscribe(scope, event);
         }
 
-        this.subscriptions[topic] = methodName;
+        this.subscriptions[topic] = fullMethodName;
 
-        super.subscribe(scope, event, methodName);
+        super.subscribe(scope, event, fullMethodName);
     }
 
     // features for the world (i.e., top-level) element
@@ -248,7 +261,7 @@ export class Element extends M {
         this.worldState = this;
         this.beWellKnownAs("worldModel");
 
-        this.subscribe(this.id, 'domEvent', 'domEvent');
+        this.subscribe(this.id, "domEvent", "domEvent");
     }
 
     needsUpdate() {
@@ -543,7 +556,7 @@ export class Element extends M {
     setTransform(value) {
         let t = value;
         if (typeof t === "string") {
-            t = t.split(',').map(e => parseFloat(e));
+            t = t.split(",").map(e => parseFloat(e));
         }
         this._style.setTransform(t);
         this.needsUpdate();
@@ -562,7 +575,7 @@ export class Element extends M {
         return this._domId;
     }
 
-    setCode(stringOrArray) {
+    setCode(stringOrArray, notCallInit) {
         if (!stringOrArray) {
             console.log("code is empty for ", this);
             return;
@@ -577,14 +590,6 @@ export class Element extends M {
         }
 
         this.code = array;
-        let myHandler = this.ensureMyHandler();
-        Object.keys(myHandler).forEach((k) => {
-            if (myHandler[k] && myHandler["_" + k]) {
-                delete myHandler[k];
-                delete myHandler["_" + k];
-            }
-        });
-
         array.forEach((str) => {
             let trimmed = str.trim();
             let source;
@@ -605,18 +610,26 @@ export class Element extends M {
                 console.log("error occured while compiling");
                 return;
             }
-
-            let name = cls.name;
-            myHandler[name] = cls.prototype;
-            myHandler["_" + name] = cls;
             result.push(cls);
+        });
+
+        if (!this.$handlers) {
+            this.$handlers = {};
+        }
+        let myHandler = this.$handlers;
+
+        Object.keys(myHandler).forEach((k) => {
+            if (myHandler[k] && myHandler["_" + k]) {
+                delete myHandler[k];
+                delete myHandler["_" + k];
+            }
         });
 
         result.forEach((cls) => {
             let name = cls.name;
             myHandler[name] = cls.prototype;
             myHandler["_" + name] = cls;
-            if (cls.prototype.init) {
+            if (!notCallInit && cls.prototype.init) {
                 this.call(cls.name, "init");
             }
         });
@@ -760,15 +773,20 @@ export class Element extends M {
     getScriptingInfo() {
         let domId = this.domId;
         let myValues = this.me;
-        let propStr = Object.keys(myValues).map(k => {
+        let props = [];
+        Object.keys(myValues).forEach(k => {
             let v = myValues[k];
-            return k + ": " + JSON.stringify(v);
-        }).join("\n");
+            if (v === undefined) {
+                return;
+            }
+            props.push(k + ": " + JSON.stringify(v));
+        });
 
+        let propStr = props.join("\n");
         let clsString = this.getClassList().join(",");
 
         return `id:
-${domId || ''}
+${domId || ""}
 classes:
 ${clsString}
 props:
@@ -807,8 +825,20 @@ ${propStr}
     // events
 
     addEventListener(evtName, spec, useCapture) {
+        let trait = this._trait;
+        if (trait) {
+            trait = trait.constructor.name;
+        }
+
+        let fullSpec;
+        if (spec.indexOf(".") >= 1 || !trait) {
+            fullSpec = spec;
+        } else if (trait) {
+            fullSpec = `${trait}.${spec}`;
+        }
+
         let listeners = {...this.eventListeners};
-        listeners[evtName] = {spec, useCapture};
+        listeners[evtName] = {spec: fullSpec, useCapture};
         this.eventListeners = listeners;
         this.needsUpdate();
     }
@@ -824,7 +854,7 @@ ${propStr}
 
     querySelector(string) {
         // This version assumes the string starts with # and only works for looking up dom id
-        if (string[0] !== '#') {return null;}
+        if (string[0] !== "#") {return null;}
         let id = string.slice(1);
 
         let query = (me) => {
@@ -881,6 +911,15 @@ ${propStr}
         return old[name];
     }
 
+    _delete(name) {
+        let old = this.me;
+        let newValues = {...old};
+        let value = old[name];
+        delete newValues[name];
+        this.me = newValues;
+        return value;
+    }
+
     domEvent(info) {
         let {elementId, evt, trait, method} = info;
         let world = this.getWorldState();
@@ -896,7 +935,7 @@ ${propStr}
             this.$handlers = {};
             let maybeCode = this.getCode();
             if (maybeCode.length > 0) {// always an array
-                this.setCode(maybeCode);
+                this.setCode(maybeCode, true);
             }
             maybeCode = this.getViewCode();
             if (maybeCode.length > 0) {// always an array
@@ -998,7 +1037,7 @@ export class TopView extends V {
         this.isSynced = false;
         this.pointerTracker = null;
 
-        this.subscribe(this.viewId, "synced", 'synced');
+        this.subscribe(this.viewId, "synced", "synced");
 
         this.subscribe(this.sessionId, "resizeWindow", "resizeWindow");
         document.addEventListener("drop", evt => evt.preventDefault());
@@ -1042,7 +1081,7 @@ export class TopView extends V {
 
         this.dom.remove();
 
-        console.log('detach top');
+        console.log("detach top");
 
         this.detachCallbacks.forEach((c) => {
             if (typeof c === "function") {
@@ -1140,7 +1179,7 @@ export class TopView extends V {
     }
 
     querySelector(string) {
-        if (string[0] !== '#') {return null;}
+        if (string[0] !== "#") {return null;}
         let elem = this.dom.querySelector(string);
         if (!elem) {return null;}
         let key = elem.key;
@@ -1329,7 +1368,7 @@ export class ElementView extends V {
         this.props = {};  // may have to saved in the model as the result of user interaction?
         this.eventListeners = {}; // {evtName: {func: function, spec: string, useCapture: boolean}}
         if (this.model.isWorld) {
-            this.subscribe(this.viewId, "synced", 'synced');
+            this.subscribe(this.viewId, "synced", "synced");
         }
     }
 
@@ -1362,8 +1401,8 @@ export class ElementView extends V {
             return super.subscribe(scope, event, methodName);
         }
 
-        if (methodName.indexOf('.') >= 1) {
-            let split = methodName.split('.');
+        if (methodName.indexOf(".") >= 1) {
+            let split = methodName.split(".");
             let func = (data) => {
                 this.call(split[0], split[1], data);
             };
@@ -1404,15 +1443,31 @@ export class ElementView extends V {
         return result;
     }
 
+    eventKeyFromSpec(evtName, spec) {
+        let trait = this._trait;
+        if (trait) {
+            trait = trait.constructor.name;
+        }
+
+        let fullSpec;
+        if (spec.indexOf(".") >= 1 || !trait) {
+            fullSpec = spec;
+        } else if (trait) {
+            fullSpec = `${trait}.${spec}`;
+        }
+        return [fullSpec, "_" + evtName + "_" + fullSpec];
+    }
+
     addEventListener(evtName, spec) {
-        if (this.viewHandlers['_' + evtName + "_" + spec]) {
+        let [fullSpec, key] = this.eventKeyFromSpec(evtName, spec);
+        if (this.viewHandlers[key]) {
             console.log("most likely to be duplicate");
             this.removeEventListener(evtName, spec);
         }
 
-        let split = spec.split('.');
-        let trait;
+        let split = fullSpec.split(".");
         let method;
+        let trait;
         if (split[1]) {
             trait = split[0];
             method = split[1];
@@ -1427,14 +1482,15 @@ export class ElementView extends V {
             this.call(trait, method, cooked);
         };
 
-        this.viewHandlers['_' + evtName] = func;
+        this.viewHandlers[key] = func;
         this.dom.addEventListener(evtName, func);
     }
 
-    removeEventListener(evtName, _spec) {
-        if (this.viewHandlers['_' + evtName]) {
-            this.dom.removeEventListener(evtName, this.viewHandlers['_' + evtName]);
-            delete this.viewHandlers['_' + evtName];
+    removeEventListener(evtName, spec) {
+        let [_fullSpec, key] = this.eventKeyFromSpec(evtName, spec);
+        if (this.viewHandlers[key]) {
+            this.dom.removeEventListener(evtName, this.viewHandlers[key]);
+            delete this.viewHandlers[key];
         }
     }
 
@@ -1443,7 +1499,7 @@ export class ElementView extends V {
     }
 
     querySelector(string) {
-        if (string[0] !== '#') {return null;}
+        if (string[0] !== "#") {return null;}
         let elem = this.dom.querySelector(string);
         if (!elem) {return null;}
         let key = elem.key;
@@ -1713,8 +1769,8 @@ export class ElementView extends V {
             }
         }
         Object.keys(style).forEach((k) => {
-            if (style['-cards-direct-manipulation'] && (k === "width" || k === "height")) {return;}
-            if (k.startsWith('-cards-')) {
+            if (style["-cards-direct-manipulation"] && (k === "width" || k === "height")) {return;}
+            if (k.startsWith("-cards-")) {
                 newStyle[k] = style[k];
                 return;
             }
@@ -1790,7 +1846,7 @@ export class ElementView extends V {
             }
 
             let trait, method;
-            let split = spec.split('.');
+            let split = spec.split(".");
             if (split.length > 1) {
                 trait = split[0];
                 method = split[1];
@@ -1812,7 +1868,7 @@ export class ElementView extends V {
                 // ouch
                 delete cooked.stopPropagation;
                 delete cooked.preventDefault;
-                this.publish(modelId, 'domEvent', {elementId, evt: cooked, trait, method});
+                this.publish(modelId, "domEvent", {elementId, evt: cooked, trait, method});
             };
 
             this.eventListeners[k] = {func, spec, useCapture};
@@ -1991,7 +2047,7 @@ class GlobalPointerGrabber {
     releasePointer(pointerId, maybeDom) {
         if (pointerId !== undefined) {
             let dom = this.pointerCaptureMap.get(pointerId);
-            if (maybeDom !== dom) {console.log("inconsitent capture");}
+            if (maybeDom !== dom) {console.log("inconsistent capture");}
             dom.releasePointerCapture(pointerId);
             this.pointerCaptureMap.delete(pointerId);
             return;

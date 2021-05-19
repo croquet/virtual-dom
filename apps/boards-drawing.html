@@ -9,7 +9,7 @@ import {drawing} from "../examples/boards-drawing.js";
 let library = new Library();
 library.addLibrary("drawing", drawing);
 
-window.onload = makeMain("drawing.beDrawing", {appId: "io.croquet.vdom.boards_drawing"}, library, null);
+window.onload = makeMain("drawing.beDrawing", {appId: "io.croquet.vdom.boards_drawing", tps: 1}, library, null);
   </script>
 </head>
   <body style="touch-action: none">

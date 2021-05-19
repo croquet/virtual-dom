@@ -15,7 +15,7 @@ library.addLibrary("widgets", widgets);
 
 library.installAsBaseLibrary();
     
-window.onload = makeMain("chat.beChat", {autoSleep: false, appId: "io.croquet.vdom.textchat"}, library, null, "./text-chat.svg");
+window.onload = makeMain("chat.beChat", {autoSleep: false, appId: "io.croquet.vdom.textchat", tps: 1}, library, null, "./text-chat.svg");
   </script>
 </head>
   <body style="touch-action: none">

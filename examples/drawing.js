@@ -17,10 +17,11 @@ limitations under the License.
 class DrawModel {
     init() {
         this._set("color", "black");
-        this.subscribe(this.id, "line", "DrawModel.line");
-        this.subscribe(this.id, "pointerUp", "DrawModel.savePersistentData");
-        this.subscribe(this.sessionId, "color", "DrawModel.color");
-        this.subscribe(this.sessionId, "clear", "DrawModel.clear");
+        this.subscribe(this.id, "line", "line");
+        this.subscribe(this.sessionId, "color", "color");
+        this.subscribe(this.sessionId, "clear", "clear");
+
+        this.subscribe(this.id, "pointerUp", "savePersistentData");
     }
 
     line(data) {
@@ -34,7 +35,12 @@ class DrawModel {
 
     color(color) {
         this._set("color", color);
+    }
+
+    clear() {
+        this._set("lines", null);
         this.savePersistentData();
+        this.publish(this.id, "cleared");
     }
 
     loadPersistentData(data) {
@@ -47,17 +53,13 @@ class DrawModel {
         top.persistSession(func);
     }
 
-    clear() {
-        this._set("lines", null);
-        this.savePersistentData();
-    }
 }
 
 class DrawView {
     init() {
-        this.addEventListener("pointerdown", "DrawView.pointerDown");
-        this.subscribe(this.model.id, "drawLine", "DrawView.drawLine");
-        this.subscribe(this.sessionId, 'clear', 'DrawView.clear');
+        this.addEventListener("pointerdown", "pointerDown");
+        this.subscribe(this.model.id, "drawLine", "drawLine");
+        this.subscribe(this.model.id, "cleared", "clear");
         this.initDraw();
     }
 
@@ -77,8 +79,8 @@ class DrawView {
         let offsetY = evt.offsetY;
         this.lastPoint = {x: offsetX, y: offsetY};
 
-        this.addEventListener("pointermove", "DrawView.pointerMove");
-        this.addEventListener("pointerup", "DrawView.pointerUp");
+        this.addEventListener("pointermove", "pointerMove");
+        this.addEventListener("pointerup", "pointerUp");
     }
 
     pointerMove(evt) {
@@ -90,8 +92,8 @@ class DrawView {
     }
 
     pointerUp(_evt) {
-        this.removeEventListener("pointermove", "DrawView.pointerMove");
-        this.removeEventListener("pointerup", "DrawView.pointerUp");
+        this.removeEventListener("pointermove", "pointerMove");
+        this.removeEventListener("pointerup", "pointerUp");
         this.lastPoint = null;
         this.releaseAllPointerCapture();
         this.publish(this.model.id, "pointerUp");
@@ -116,7 +118,7 @@ class DrawView {
 
 class Color {
     init() {
-        this.addEventListener("click", "Color.color");
+        this.addEventListener("click", "color");
         this.style.setProperty("background-color", "black");
     }
 
@@ -136,7 +138,7 @@ class Color {
 
 class ClearButton {
     init() {
-        this.addEventListener("click", "ClearButton.click");
+        this.addEventListener("click", "click");
         this.setStyleString(`.no-select {
     user-select: none;
     -webkit-user-select: none;

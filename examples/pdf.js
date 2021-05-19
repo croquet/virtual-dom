@@ -19,13 +19,13 @@ limitations under the License.
 class PDFModel {
     init() {
         this.reset();
-        this.subscribe(this.id, "addAsset", "PDFModel.addAsset");
-        this.subscribe(this.id, "setPageNumber", "PDFModel.pageNumber");
-        this.subscribe(this.id, "pdfInfo", "PDFModel.pdfInfo");
-        this.subscribe(this.id, "viewInfo", "PDFModel.viewInfo");
-        this.subscribe(this.id, "setScale", "PDFModel.scale");
-        this.subscribe(this.id, "setOffsetX", "PDFModel.offsetX");
-        this.subscribe(this.id, "setOffsetY", "PDFModel.offsetY");
+        this.subscribe(this.id, "addAsset", "addAsset");
+        this.subscribe(this.id, "setPageNumber", "pageNumber");
+        this.subscribe(this.id, "pdfInfo", "pdfInfo");
+        this.subscribe(this.id, "viewInfo", "viewInfo");
+        this.subscribe(this.id, "setScale", "scale");
+        this.subscribe(this.id, "setOffsetX", "offsetX");
+        this.subscribe(this.id, "setOffsetY", "offsetY");
 
         this.setup();
     }
@@ -93,7 +93,7 @@ class PDFModel {
             first.setCode(this.getLibrary("widgets.Button"));
             first.call("Button", "beButton", "First", "<<", "black");
             first.addDomain(null, "first");
-            this.subscribe(first.id, "first", "PDFModel.first");
+            this.subscribe(first.id, "first", "first");
 
             let prev = this.createElement("div");
             prev.innerHTML = "&lt;";
@@ -101,7 +101,7 @@ class PDFModel {
             prev.setCode(this.getLibrary("widgets.Button"));
             prev.call("Button", "beButton", "Prev", "<", "black");
             prev.addDomain(null, "prev");
-            this.subscribe(prev.id, "prev", "PDFModel.prev");
+            this.subscribe(prev.id, "prev", "prev");
 
             let next = this.createElement("div");
             next.innerHTML = "&gt;";
@@ -109,7 +109,7 @@ class PDFModel {
             next.setCode(this.getLibrary("widgets.Button"));
             next.call("Button", "beButton", "Next", ">", "black");
             next.addDomain(null, "next");
-            this.subscribe(next.id, "next", "PDFModel.next");
+            this.subscribe(next.id, "next", "next");
 
             let scale = this.createElement("TextElement");
             scale.classList.add("no-select");
@@ -182,13 +182,13 @@ class PDFModel {
 
 class PDFView {
     init() {
-        this.subscribe(this.model.id, "asset", "PDFView.asset");
-        this.subscribe(this.model.id, "pageNumber", "PDFView.pageNumber");
-        this.subscribe(this.model.id, "viewport", "PDFView.viewport");
-        this.subscribe(this.model.id, "viewInfoChanged", "PDFView.viewInfoChanged");
+        this.subscribe(this.model.id, "asset", "asset");
+        this.subscribe(this.model.id, "pageNumber", "pageNumber");
+        this.subscribe(this.model.id, "viewport", "viewport");
+        this.subscribe(this.model.id, "viewInfoChanged", "viewInfoChanged");
 
         if (this.model._get("standalone")) {
-            this.addEventListener("drop", "PDFView.drop");
+            this.addEventListener("drop", "drop");
         }
 
         if (this.model._get("asset")) {

@@ -76,6 +76,7 @@ export class Style { // extends TimeObject
     }
 
     setStyleString(string) {
+        if (!string) {return;}
         let simpleRE = /^[ \t]*([^:]+)[ \t]*:[ \t]*([^{]+)[ \t]*[;][ \t]*$/;
         let index = 0;
         let array = string.split('\n');

@@ -21,8 +21,9 @@ import {DOMMenu} from "./menu.js";
 import {WheelFilterView} from "./wheelfilter.js";
 import {GestureFilterView} from "./gesturefilter.js";
 import {PointerDownFilterView} from "./pointerdownfilter.js";
+import {DoubleClickFilterView} from "./doubleclickfilter.js";
 
 export const widgets = {
-    expanders: [Button, ButtonView, CheckBox, Tab, WheelFilterView, GestureFilterView, PointerDownFilterView],
+    expanders: [Button, ButtonView, CheckBox, Tab, WheelFilterView, GestureFilterView, PointerDownFilterView, DoubleClickFilterView],
     classes: [DOMMenu]
 };

@@ -37,7 +37,7 @@ class MiniBrowser {
                 address.style.setProperty("border", "1px solid black");
                 address.style.setProperty("margin", "4px");
                 address._set("enterToAccept", true);
-                this.subscribe(address.id, "text", "MiniBrowser.urlFromText");
+                this.subscribe(address.id, "text", "urlFromText");
                 this.appendChild(address);
 
                 let button = this.createElement();
@@ -78,7 +78,7 @@ class MiniBrowser {
             ]);
         }
 
-        this.subscribe(this.id, "beTransparent", "MiniBrowser.updateTransparency"); // published by a FrameMenuView
+        this.subscribe(this.id, "beTransparent", "updateTransparency"); // published by a FrameMenuView
         console.log("MiniBrowser.init");
     }
 
@@ -228,8 +228,8 @@ class MiniBrowser {
 class MiniBrowserView {
     init() {
         this.appInfo = null;
-        this.subscribe(this.model.id, "updateTransparency", "MiniBrowserView.updateTransparency"); // published by MiniBrowser
-        this.subscribe(this.model.id, "urlChanged", "MiniBrowserView.urlChanged");
+        this.subscribe(this.model.id, "updateTransparency", "updateTransparency"); // published by MiniBrowser
+        this.subscribe(this.model.id, "urlChanged", "urlChanged");
 
         // if the model has an empty url, open the address bar
         // for editing
@@ -301,7 +301,7 @@ class MiniBrowserView {
 
 class QRView {
     init() {
-        this.addEventListener("pointerup", "QRView.pointerUp");
+        this.addEventListener("pointerup", "pointerUp");
         // this.dom.draggable = true;
         this.dom.addEventListener("dragstart", evt => this.startDrag(evt)); // we need the raw DOM event to work with
         this.dom.addEventListener("dragend", evt => this.endDrag(evt)); // we need the raw DOM event to work with
@@ -441,9 +441,15 @@ function beBrowser(parent, _json) {
     holder.setCode("minibrowser.MiniBrowser");
     holder.setViewCode("minibrowser.MiniBrowserView");
     holder.style.setProperty("-cards-direct-manipulation", true);
+    holder.style.setProperty("font-size", "12px");
     holder.call("MiniBrowser", "setExtent", 800, 600);
     holder.setTransform("1,0,0,1,0,0");
-
+   
+    holder.call("MiniBrowser", "removeCover");
+    
+    let address = holder.call("MiniBrowser", "getAddressBar");
+    address.setDefault("san-serif", 12);
+                              
     parent.appendChild(holder);
 }
 

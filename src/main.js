@@ -34,9 +34,17 @@ function single(code, sessionOptions, sessionName, init) {
             element.evaluate(options.code, options.json, options.projectCode, persistentData);
         }
     }
+
     Model.register("Model");
-    if (!sessionName) {sessionName = `${init}-${Croquet.App.autoSession("q")}`;}
-    loader(code, null, Model, Element, start, sessionOptions, sessionName);
+
+    if (sessionName) {
+        return loader(code, null, Model, Element, start, sessionOptions, sessionName);
+    }
+
+    Croquet.App.autoSession("q").then((name) => {
+        name = `${init}-${name}`;
+        loader(code, null, Model, Element, start, sessionOptions, name);
+    });
 }
 
 export function makeMain(init, sessionOptions, library, sessionName, svgFileName) {

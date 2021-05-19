@@ -85,6 +85,10 @@ export class TextElement extends Element {
         this.needsUpdate();
     }
 
+    save() {
+        return {runs: this.doc.runs, defaultFont: this.doc.defaultFont, defaultSize: this.doc.defaultSize};
+    }
+
     loadAndReset(string) {
         let runs = [{text: string}];
         this.content = {runs: runs, selections: {}, undoStacks: {}, timezone: 0, queue: [], editable: true};
@@ -108,7 +112,7 @@ export class TextElement extends Element {
     }
 
     publishChanged() {
-        this.publish(this.id, "changed", {ref: this.asElementRef(), text: this.doc.plainText()});
+        this.publish(this.id, "changed", {ref: this.asElementRef()});
     }
 
     viewExit(viewId) {
@@ -181,6 +185,7 @@ export class TextView extends ElementView {
         this.hiddenInput.style.setProperty("position", "absolute");
         this.hiddenInput.style.setProperty("left", "-120px"); //-100
         this.hiddenInput.style.setProperty("top", "-120px");  // -100
+        this.hiddenInput.style.setProperty("transform", "scale(0)"); // to make sure the user never sees a flashing caret, for example on iPad/Safari
         this.hiddenInput.style.setProperty("z-order", "10");
 
         this.hiddenInput.style.setProperty("width", "100px");
@@ -243,6 +248,11 @@ export class TextView extends ElementView {
         this.dom.addEventListener("pointerup", evt => {
             evt.stopPropagation();
             this.pointerUp(this.cookEvent(evt));
+        }, true);
+        this.dom.addEventListener("dblclick", evt => {
+            evt.stopPropagation();
+            // have not implemented but needs to filter it.
+            // this.dblclick(this.cookEvent(evt));
         }, true);
         this.text.key = this.dom.key;
 

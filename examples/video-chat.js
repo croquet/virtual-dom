@@ -57,15 +57,15 @@ class PeerView {
             });
         }
 
-        this.addEventListener('pointerenter', "PeerView.pointerEnter");
-        this.addEventListener('pointerleave', "PeerView.pointerLeave");
+        this.addEventListener('pointerenter', "pointerEnter");
+        this.addEventListener('pointerleave', "pointerLeave");
 
         // now I finally know what was my problem.
         let scope = this.model.sessionId;
-        this.subscribe(scope, "sessionButton", "PeerView.sessionButtonPressed");
-        this.subscribe(scope, "audioButton", "PeerView.audioButtonPressed");
-        this.subscribe(scope, "videoButton", "PeerView.videoButtonPressed");
-        this.subscribe(scope, "shareButton", "PeerView.shareButtonPressed");
+        this.subscribe(scope, "sessionButton", "sessionButtonPressed");
+        this.subscribe(scope, "audioButton", "audioButtonPressed");
+        this.subscribe(scope, "videoButton", "videoButtonPressed");
+        this.subscribe(scope, "shareButton", "shareButtonPressed");
         this.state = {action: "new", time: Date.now()};
         this.peers = {};
         this.audio = {};

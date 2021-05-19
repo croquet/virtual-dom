@@ -16,16 +16,7 @@ limitations under the License.
 
 import {Element, ElementView} from './element.js';
 
-const attributes = {
-    src: true,
-    allow: true,
-    importance: true,
-    loading: true,
-    name: true,
-    referrerpolicy: true,
-    sandbox: true,
-    width: true
-};
+const attributes = ["src", "allow", "importance", "loading", "name", "referrerpolicy", "sandbox", "width"];
 
 export class IFrameElement extends Element {
     static viewClass() {return IFrameView;}
@@ -38,10 +29,13 @@ export class IFrameElement extends Element {
     }
 
     _set(name, value) {
+        let old = this._get(name);
         super._set(name, value);
 
-        if (attributes[name]) {
-            this.needsUpdate();
+        if (attributes.indexOf(name) >= 0) {
+            if (old !== value || name === "src") {
+                this.needsUpdate();
+            }
         }
     }
 }
@@ -57,15 +51,29 @@ export class IFrameView extends ElementView {
 
     apply(time, elem, world) {
         super.apply(time, elem, world);
-        for (let k in attributes) {
+        let parent = this.iframe.parentNode;
+        let refNode = this.iframe.nextSibling;
+
+        let updated = attributes.filter((k) => {
             let value = elem._get(k);
-            if (this.lastValues[k] !== value) {
-                this.lastValues[k] = value;
-                try {
-                    this.iframe[k] = value;
-                } catch (e) {
-                    console.log("may be some unknown attributes are specified", e);
-                }
+            return this.lastValues[k] !== value || (k === "src" && typeof value === "string");
+        }).map((k) => [k, elem._get(k)]);
+
+        // Remove the actual iframe element temporarily so that setting src does not
+        // mutate browser history
+
+        try {
+            if (parent) {
+                this.iframe.remove();
+            }
+            updated.forEach(([k, value]) => {
+                this.iframe[k] = value;
+            });
+        }  catch (e) {
+            console.log("may be some unknown attributes are specified", e);
+        } finally {
+            if (parent) {
+                parent.insertBefore(this.iframe, refNode);
             }
         }
     }

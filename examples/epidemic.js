@@ -16,7 +16,7 @@ limitations under the License.
 
 class Epidemic {
     init() {
-        this.subscribe(this.sessionId, "start", "Epidemic.start");
+        this.subscribe(this.sessionId, "start", "start");
     }
 
     start() {
@@ -180,7 +180,7 @@ class Epidemic {
 
 class EpidemicView {
     init() {
-        this.subscribe(this.model.id, "update", "EpidemicView.update");
+        this.subscribe(this.model.id, "update", "update");
         this.update();
     }
 
@@ -210,6 +210,16 @@ class EpidemicView {
     }
 }
 
+class StartButton {
+    init() {
+        this.addEventListener("click", "click");
+    }
+
+    click() {
+        this.publish(this.sessionId, "start");
+    }
+}
+
 function beEpidemic(top, json, persistentData) {
     let elem = top.createElement();
     elem.setCode("epidemic.Epidemic");
@@ -224,7 +234,7 @@ function beEpidemic(top, json, persistentData) {
 
     let button = top.createElement();
     button.innerHTML = "Start";
-    button.setCode('class B {init() {this.addEventListener("click", "B.click");} click() {this.publish(this.sessionId, "start");}}');
+    button.setCode("epidemic.StartButton");
     button.style.setProperty("border", "1px solid black");
     button.style.setProperty("border-radius", "5px");
     button.style.setProperty("width", "fit-content");
@@ -249,6 +259,6 @@ function beEpidemic(top, json, persistentData) {
 }
 
 export const epidemic = {
-    expanders: [Epidemic, EpidemicView],
+    expanders: [Epidemic, EpidemicView, StartButton],
     functions: [beEpidemic]
 };

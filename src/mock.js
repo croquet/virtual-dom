@@ -173,6 +173,10 @@ class View {
         return session.id;
     }
 
+    get session() {
+        return session;
+    }
+
     get viewId() {return viewDomain.id;}
 
     now() {
@@ -414,7 +418,7 @@ function makeController(modelClass, viewClass, options) {
         viewDomain = new ViewDomain();
     }
 
-    let s = {model: null, view: null, id: island.id};
+    let s = {model: null, view: null, id: island.id, persistentId: "abcdef"};
 
     if (!session) {
         session = s;
@@ -452,7 +456,6 @@ export async function createSession(name, modelClass, viewClass, parameters) {
         });
     }
 
-    // Croquet.App.makeWidgetDock();
     if (!parameters.options || !parameters.options.sessionName) {
         Croquet.App.sessionURL = window.location.href;
         parameters.options.sessionName = window.location.href;
@@ -469,11 +472,6 @@ export async function createSession(name, modelClass, viewClass, parameters) {
         if (!session) {
             session = s;
         }
-        // let dock = document.querySelector('#croquet_dock');
-        // if (dock) {
-        //     dock.style.setProperty('position', 'fixed');
-        // }
-        // App.autoSession(modelClass.constructor.name);
         return s;
     });
 }
