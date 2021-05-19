@@ -501,7 +501,7 @@ In `init()`, the method `color` of the expander is specified to be called when a
         this.style.setProperty("background-color", color);
         this.publish(this.sessionId, "color", color);
     }
-~~~~~~~~y
+~~~~~~~~
 The `color` method is executed when this virtual DOM element is clicked. `this.randomColor()` calls the `randomColor()` method defined by the same expander, and the `background-color` that was set to `black` in `init()` is replaced with the new color. The new color is then also published in a "color" message, using `this.sessionId` as the scope.
 
 `sessionId` is shared across the whole application, so any object in the application can subscribe to messages that have this scope. As shown above, in this example all `DrawModel`s subscribe to these "color" messages, and respond by changing their "color" property.
