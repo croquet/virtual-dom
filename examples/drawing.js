@@ -22,6 +22,7 @@ class DrawModel {
         this.subscribe(this.sessionId, "clear", "clear");
 
         this.subscribe(this.id, "pointerUp", "savePersistentData");
+        console.log("DrawModel.init");
     }
 
     line(data) {
@@ -61,6 +62,7 @@ class DrawView {
         this.subscribe(this.model.id, "drawLine", "drawLine");
         this.subscribe(this.model.id, "cleared", "clear");
         this.initDraw();
+        console.log("DrawView.init");
     }
 
     initDraw() {
@@ -167,6 +169,8 @@ class ClearButton {
 `);
 
         this.classList.add("icon");
+
+        console.log("ClearButton.init");
     }
 
     click() {
@@ -175,14 +179,14 @@ class ClearButton {
 }
 
 function beDrawing(parent, json, persistentData) {
-    let top = parent.createElement();
-    let canvas = parent.createElement("CanvasElement");
+    let top = parent.createElement("div");
+    let canvas = parent.createElement("canvas");
 
     canvas.setCode("drawing.DrawModel");
     canvas.setViewCode("drawing.DrawView");
     canvas.style.setProperty("border", "1px solid gray");
 
-    let color = parent.createElement();
+    let color = parent.createElement("div");
     color.setCode("drawing.Color");
 
     color.style.setProperty("width", "40px");
@@ -206,7 +210,7 @@ function beDrawing(parent, json, persistentData) {
     top.appendChild(color);
     parent.appendChild(top);
 
-    let clear = parent.createElement();
+    let clear = parent.createElement("div");
     clear.domId = "clear";
     clear.setCode("drawing.ClearButton");
     parent.appendChild(clear);

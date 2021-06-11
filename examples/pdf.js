@@ -111,7 +111,7 @@ class PDFModel {
             next.addDomain(null, "next");
             this.subscribe(next.id, "next", "next");
 
-            let scale = this.createElement("TextElement");
+            let scale = this.createElement("textarea");
             scale.classList.add("no-select");
             scale.value = "100%";
             scale.setWidth(40);

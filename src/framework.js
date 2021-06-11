@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {start, TopModel, Element} from "./element.js";
+import {start, TopModel, Element, ElementView} from "./element.js";
 import {initializeElementClasses} from "./globals.js";
 import {isLocal} from "./mock.js";
 import {loader, svgSpriteLoader} from "./loader.js";
 import {Library} from "./library.js";
 import {makeMain} from "./main.js";
+import {stringify, parse} from "./stable-stringify.js";
 
-export {start, TopModel, Element, initializeElementClasses, isLocal, loader, svgSpriteLoader, Library, makeMain};
+export {start, TopModel, Element, ElementView, initializeElementClasses, isLocal, loader, svgSpriteLoader, Library, stringify, parse, makeMain};

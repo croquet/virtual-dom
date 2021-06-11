@@ -221,18 +221,18 @@ class StartButton {
 }
 
 function beEpidemic(top, json, persistentData) {
-    let elem = top.createElement();
+    let elem = top.createElement("div");
     elem.setCode("epidemic.Epidemic");
     elem.setViewCode("epidemic.EpidemicView");
 
-    let holder = top.createElement("CanvasElement");
+    let holder = top.createElement("canvas");
     holder.domId = "holder";
     holder.setExtent(512, 512);
     holder.style.setProperty("width", "512px");
     holder.style.setProperty("height", "512px");
     holder.style.setProperty("background-color", "#202020");
 
-    let button = top.createElement();
+    let button = top.createElement("div");
     button.innerHTML = "Start";
     button.setCode("epidemic.StartButton");
     button.style.setProperty("border", "1px solid black");
@@ -241,12 +241,13 @@ function beEpidemic(top, json, persistentData) {
     button.style.setProperty("margin", "2px");
     button.style.setProperty("padding", "3px");
 
-    let count = top.createElement("TextElement");
+    let count = top.createElement("textarea");
     count.domId = "count";
     count.setWidth(100);
+    count.setDefault("sans-serif", 16);
     count.style.setProperty("height", 28);
     count.style.setProperty("-cards-text-margin", "4 4 4 4");
-    count.load("1000");
+    count.value = "1000";
 
     elem.appendChild(holder);
     elem.appendChild(button);

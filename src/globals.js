@@ -20,14 +20,23 @@ import {TextElement} from "./text/text.js";
 import {setLastFontLoadedTime} from "./text/warota.js";
 import {IFrameElement} from "./iframe.js";
 import {VideoElement} from "./video.js";
+import {ImageElement} from "./img.js";
 
 export function initializeElementClasses() {
     setKnownElements({
-        Element: Element,
-        CanvasElement: CanvasElement,
-        TextElement: TextElement,
-        IFrameElement: IFrameElement,
-        VideoElement: VideoElement,
+        element: Element,
+        canvaselement: CanvasElement,
+        textelement: TextElement,
+        iframeelement: IFrameElement,
+        videoelement: VideoElement,
+        imageelement: ImageElement,
+        
+        div: Element,
+        canvas: CanvasElement,
+        textarea: TextElement,
+        iframe: IFrameElement,
+        video: VideoElement,
+        img: ImageElement,
     });
     setFontLastLoadedTimeFunction(setLastFontLoadedTime);
 }

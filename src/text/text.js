@@ -312,9 +312,9 @@ export class TextView extends ElementView {
         let w = elem.style.getPropertyValue("width");
         this.width(parseInt(w, 10));
 
-        if (this.lastValues["enterToAccept"] !== this.model._get("enterToAccept")) {
+        if (this._lastValues.get("enterToAccept") !== this.model._get("enterToAccept")) {
             let accept = this.model._get("enterToAccept");
-            this.lastValues["enterToAccept"] = accept;
+            this._lastValues.set("enterToAccept", accept);
             if (accept) {
                 this.dom.style.setProperty("overflow", "hidden");
                 this.text.style.setProperty("overflow", "hidden");

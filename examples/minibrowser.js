@@ -352,8 +352,10 @@ class QRView {
             qrDiv.style.left = "26px";
             qrDiv.style.zIndex = "10";
 
+            const urlStore = App.sessionURL;
             App.sessionURL = url;
             const qrCanv = App.makeQRCanvas();
+            App.sessionURL = urlStore; // worth restoring, because sessionURL is used as referrerURL
             qrCanv.style.position = "absolute";
             qrCanv.style.top = "10px";
             qrCanv.style.left = "10px";
@@ -444,12 +446,12 @@ function beBrowser(parent, _json) {
     holder.style.setProperty("font-size", "12px");
     holder.call("MiniBrowser", "setExtent", 800, 600);
     holder.setTransform("1,0,0,1,0,0");
-   
+
     holder.call("MiniBrowser", "removeCover");
-    
+
     let address = holder.call("MiniBrowser", "getAddressBar");
     address.setDefault("san-serif", 12);
-                              
+
     parent.appendChild(holder);
 }
 

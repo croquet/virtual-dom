@@ -45,7 +45,7 @@ IFrameElement.register("IFrameElement");
 export class IFrameView extends ElementView {
     createDom() {
         this.iframe = document.createElement('iframe');
-        this.iframe.style.setProperty("border", "5px solid blue");
+        //this.iframe.style.setProperty("border", "5px solid blue");
         return this.iframe;
     }
 
@@ -56,7 +56,7 @@ export class IFrameView extends ElementView {
 
         let updated = attributes.filter((k) => {
             let value = elem._get(k);
-            return this.lastValues[k] !== value || (k === "src" && typeof value === "string");
+            return this._lastValues[k] !== value || (k === "src" && typeof value === "string");
         }).map((k) => [k, elem._get(k)]);
 
         // Remove the actual iframe element temporarily so that setting src does not
@@ -67,6 +67,7 @@ export class IFrameView extends ElementView {
                 this.iframe.remove();
             }
             updated.forEach(([k, value]) => {
+                this._lastValues.set(k, value);
                 this.iframe[k] = value;
             });
         }  catch (e) {

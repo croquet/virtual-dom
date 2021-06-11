@@ -31,48 +31,48 @@ export function newId(isRandom) {
 
 export class Style { // extends TimeObject
     constructor() {
-        this.values = {local: {}, classes: null};
-    }
-
-    get() {
-        return this.values;
+        this.local = new Map();
+        this.classes = null; // or string
     }
 
     setProperty(name, value) {
-        this.values.local[name] = value;
+        this.local.set(name, value);
     }
 
     removeProperty(name) {
-        delete this.values.local[name];
+        this.local.delete(name);
     }
 
     getPropertyValue(name) {
-        return this.values.local[name];
+        return this.local.get(name);
     }
 
     getStyleString() {
-        let r = this.values;
         let c = [];
-        for (let k in r.local) {
-            let value = r.local[k];
+        let local = this.local;
+        local.forEach((value, key) => {
             let v;
 
-            if (k.startsWith("-cards-")) {
-                if (k === "-cards-background-image-asset") {
+            if (key.startsWith("-cards-")) {
+                if (key === "-cards-background-image-asset") {
                     let id = Croquet.Data.toId(value.handle);
                     v = id + "." + value.type;
                 } else {
+                    if (typeof value === "object" && value.constructor !== Array) {
+                        console.log("potentially dangerous value", value);
+                    }
                     v = JSON.stringify(value);
                 }
             } else {
                 v = `${value}`;
             }
-            c.push(`${k}: ${v};`);
+            c.push(`${key}: ${v};`);
+        });
+
+        if (this.classes) {
+            c.push(this.classes);
         }
-        if (r.classes) {
-            c.push(r.classes);
-        }
-        return c.join('\n');
+        return c.join("\n");
     }
 
     setStyleString(string) {
@@ -80,7 +80,7 @@ export class Style { // extends TimeObject
         let simpleRE = /^[ \t]*([^:]+)[ \t]*:[ \t]*([^{]+)[ \t]*[;][ \t]*$/;
         let index = 0;
         let array = string.split('\n');
-        let dict = {};
+        let dict = new Map();
 
         while (true) {
             let line = array[index];
@@ -96,7 +96,7 @@ export class Style { // extends TimeObject
                         value = JSON.parse(value);
                     }
                 }
-                dict[key] = value;
+                dict.set(key, value);
                 index++;
             } else {
                 break;
@@ -109,21 +109,22 @@ export class Style { // extends TimeObject
             rest = null;
         }
 
-        this.values = {local: dict, classes: rest};
+        this.local = dict;
+        this.classes = rest;
     }
 
     setClasses(string) {
-        this.values.classes = string;
+        this.classes = string;
     }
 
     getClasses() {
-        return this.values.classes;
+        return this.classes;
     }
 
     getTransform() {
-        let r = this.values.local;
-        if (r['-cards-direct-manipulation']) {
-            return r['-cards-transform'];
+        let local = this.local;
+        if (local.get('-cards-direct-manipulation')) {
+            return local.get('-cards-transform');
         }
         return [1, 0, 0, 1, 0, 0];
     }
@@ -131,24 +132,19 @@ export class Style { // extends TimeObject
     setTransform(array) {
         // canonical value should be array.  But there is a chance that we might also allow
         // symbolic spec
-        let r = this.values;
-        let local = {...r.local, ...{'-cards-transform': array}};
-        let n = {local, classes: r.classes};
-        this.values = n;
+
+        this.local.set("-cards-transform", array);
     }
 
     getTransformOrigin() {
-        let r = this.values.local;
-        if (r['-cards-direct-manipulation']) {
-            return r['-cards-transform-origin'];
+        let local = this.local;
+        if (local['-cards-direct-manipulation']) {
+            return local['-cards-transform-origin'];
         }
         return "";
     }
 
     setTransformOrigin(string) {
-        let r = this.values;
-        let local = {...r.local, ...{'-cards-transform-origin': string}};
-        let n = {local, classes: r.classes};
-        this.values = n;
+        this.local.set('-cards-transform-origin', string);
     }
 }

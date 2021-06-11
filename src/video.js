@@ -67,8 +67,8 @@ export class VideoView extends ElementView {
 
         let k = "src";
         let value = elem._get(k);
-        if (this.lastValues[k] !== value) {
-            this.lastValues[k] = value;
+        if (this._lastValues.get(k) !== value) {
+            this._lastValues.set(k, value);
             this.dom.src = value;
         }
     }

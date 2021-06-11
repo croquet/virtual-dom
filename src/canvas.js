@@ -49,18 +49,18 @@ export class CanvasView extends ElementView {
 
     apply(time, elem, world) {
         super.apply(time, elem, world);
-        let style = elem._style.get(time).local;
+        let style = elem._style.local;
 
         let changed = false;
         let imageData;
         ["-cards-pixelWidth", "-cards-pixelHeight"].forEach(k => {
-            let value = style[k] || 200;
-            if (this.lastValues[k] !== value) {
+            let value = style.get(k) || 200;
+            if (this._lastValues.get(k) !== value) {
                 changed = changed || true;
             }
         });
 
-        if (changed && style["-cards-retain-pixels"]) {
+        if (changed && style.get("-cards-retain-pixels")) {
             if (this.dom.width > 0 && this.dom.height > 0) {
                 let ctx = this.dom.getContext("2d");
                 imageData = ctx.getImageData(0, 0, this.dom.width, this.dom.height);
@@ -69,9 +69,9 @@ export class CanvasView extends ElementView {
 
         [["-cards-pixelWidth", "width"], ["-cards-pixelHeight", "height"]].forEach(pair => {
             let [k, p] = pair;
-            let value = style[k] || 200;
-            if (this.lastValues[k] !== value) {
-                this.lastValues[k] = value;
+            let value = style.get(k) || 200;
+            if (this._lastValues.get(k) !== value) {
+                this._lastValues.set(k, value);
                 this.dom[p] = parseFloat(value);
             }
         });
@@ -81,8 +81,8 @@ export class CanvasView extends ElementView {
             ctx.putImageData(imageData, 0, 0);
         }
 
-        if (style["-cards-resize-callback"]) {
-            let split = style["-cards-resize-callback"].split(".");
+        if (style.get("-cards-resize-callback")) {
+            let split = style.get("-cards-resize-callback").split(".");
             this.call(split[0], split[1]);
         }
     }

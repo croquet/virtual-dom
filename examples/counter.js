@@ -39,7 +39,7 @@ class Counter {
 }
 
 function beCounter(parent, json) {
-    let text = parent.createElement("TextElement");
+    let text = parent.createElement("textarea");
     text.style.setProperty("width", "200px");
     text.style.setProperty("height", "50px");
     text.setDefault("serif", 12);

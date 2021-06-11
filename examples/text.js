@@ -20,7 +20,7 @@ class TextModel {
     init() {
         let text = this.querySelector("#textElement");
         if (!text) {
-            text = this.createElement("TextElement");
+            text = this.createElement("textarea");
             text.domId = "text";
             text.classList.add("text");
 

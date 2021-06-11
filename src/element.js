@@ -18,6 +18,7 @@ limitations under the License.
 import {Style} from "./timeObject.js";
 import {M, V, createSession, isLocal, getElement} from "./mock.js";
 import {Library} from "./library.js";
+import {stringify, parse} from "./stable-stringify.js";
 
 let setFontLastLoadedTime = null;
 
@@ -119,16 +120,25 @@ export class TopModel extends M {
 
     appendChild() {console.log("noop");}
 
+    stringify(node) {
+        return stringify(node);
+    }
+
+    parse(str) {
+        return parse(str);
+    }
+
     static types() {
         return {
             Style: {
                 cls: Style,
                 write: (c) => {
-                    return c.values;
+                    return {local: c.local, classes: c.classes};
                 },
                 read: (obj) => {
                     let t = new Style();
-                    t.values = obj;
+                    t.local = obj.local;
+                    t.classes = obj.classes;
                     return t;
                 }
             },
@@ -156,15 +166,15 @@ export class Element extends M {
         this._domId = undefined; // string
         this._classList = [];
         this._innerHTML = undefined; // the part of HTML that does not respond to events.
-        this.eventListeners = {};
+        this._eventListeners = new Map();
 
-        this.code = []; // [code|libraryName];
-        this.viewCode = []; // [code|libraryName];
-        this.me = {}; // stored values
-        this.listeners = []; // [{scope}]
+        this._code = []; // [code|libraryName];
+        this._viewCode = []; // [code|libraryName];
+        this._me = new Map(); // stored values
+        this._listeners = []; // [{scope}]
         this.$handlers = {};
         this.worldState = null;
-        this.subscriptions = {};
+        this._subscriptions = new Map();
         /*
         if (options && options.code) {
             this.beWorld();
@@ -222,15 +232,15 @@ export class Element extends M {
             fullMethodName = `${trait}.${methodName}`;
         }
 
-        if (this.subscriptions[topic]) {
-            if (this.subscriptions[topic] === fullMethodName) {
+        if (this._subscriptions.get(topic)) {
+            if (this._subscriptions.get(topic) === fullMethodName) {
                 // console.log('already subscribed');
                 return;
             }
             this.unsubscribe(scope, event);
         }
 
-        this.subscriptions[topic] = fullMethodName;
+        this._subscriptions.set(topic, fullMethodName);
 
         super.subscribe(scope, event, fullMethodName);
     }
@@ -238,7 +248,7 @@ export class Element extends M {
     // features for the world (i.e., top-level) element
     evaluate(str, json, projectCode, persistentData) {
         if (json) {
-            json = JSON.parse(json);
+            json = parse(json);
         } else {
             json = {};
         }
@@ -287,7 +297,7 @@ export class Element extends M {
 
     createElement(cls) {
         if (typeof cls === "string") {
-            cls = Element.knownElements[cls];
+            cls = Element.knownElements[cls.toLowerCase()];
         }
         if (!cls) {
             cls = Element;
@@ -589,7 +599,7 @@ export class Element extends M {
             array = stringOrArray;
         }
 
-        this.code = array;
+        this._code = array;
         array.forEach((str) => {
             let trimmed = str.trim();
             let source;
@@ -636,7 +646,7 @@ export class Element extends M {
     }
 
     getCode() {
-        return this.code;
+        return this._code;
     }
 
     addCode(stringOrArray) {
@@ -687,12 +697,12 @@ export class Element extends M {
         } else {
             array = stringOrArray;
         }
-        this.viewCode = array;
+        this._viewCode = array;
         this.needsUpdate();
     }
 
     getViewCode() {
-        return this.viewCode;
+        return this._viewCode;
     }
 
     addViewCode(stringOrArray) {
@@ -762,7 +772,7 @@ export class Element extends M {
             let ind = str.indexOf(": ");
             if (ind < 1) {return;}
             let k = str.slice(0, ind);
-            let v = JSON.parse(str.slice(ind + 2));
+            let v = parse(str.slice(ind + 2));
             this._set(k, v);
         });
 
@@ -772,14 +782,13 @@ export class Element extends M {
 
     getScriptingInfo() {
         let domId = this.domId;
-        let myValues = this.me;
+        let myValues = this._me;
         let props = [];
-        Object.keys(myValues).forEach(k => {
-            let v = myValues[k];
+        myValues.forEach((v, k) => {
             if (v === undefined) {
                 return;
             }
-            props.push(k + ": " + JSON.stringify(v));
+            props.push(k + ": " + stringify(v));
         });
 
         let propStr = props.join("\n");
@@ -792,6 +801,20 @@ ${clsString}
 props:
 ${propStr}
 `;
+    }
+
+    setScriptingDataObject(obj) {
+        this._me = obj.get("me");
+        this._classList = obj.get("classList");
+        this.domId = obj.get("domId");
+    }
+
+    getScriptingDataObject() {
+        let result = new Map();
+        result.set("me", new Map(this._me));
+        result.set("classList", this._classList.slice());
+        result.set("domId", this.domId);
+        return result;
     }
 
     set innerHTML(str) {
@@ -809,17 +832,17 @@ ${propStr}
     }
 
     getListenersInfo() {
-        let listeners = this.listeners;
+        let listeners = this._listeners;
         if (listeners.length === 0) {
             return undefined;
         }
-        return JSON.stringify(listeners);
+        return stringify(listeners);
     }
 
     setListenersInfo(str) {
         if (!str) {return;}
-        let array = JSON.parse(str);
-        this.listeners = array;
+        let array = parse(str);
+        this._listeners = array;
     }
 
     // events
@@ -837,16 +860,12 @@ ${propStr}
             fullSpec = `${trait}.${spec}`;
         }
 
-        let listeners = {...this.eventListeners};
-        listeners[evtName] = {spec: fullSpec, useCapture};
-        this.eventListeners = listeners;
+        this._eventListeners.set(evtName, {spec: fullSpec, useCapture});
         this.needsUpdate();
     }
 
     removeEventListener(evtName, _spec) {
-        let listeners = {...this.eventListeners};
-        delete listeners[evtName];
-        this.eventListeners = listeners;
+        this._eventListeners.delete(evtName);
         this.needsUpdate();
     }
 
@@ -899,24 +918,17 @@ ${propStr}
     }
 
     _set(name, value) {
-        let old = this.me;
-        let newValues = {...old};
-        newValues[name] = value;
-        this.me = newValues;
+        this._me.set(name, value);
         return value;
     }
 
     _get(name) {
-        let old = this.me;
-        return old[name];
+        return this._me.get(name);
     }
 
     _delete(name) {
-        let old = this.me;
-        let newValues = {...old};
-        let value = old[name];
-        delete newValues[name];
-        this.me = newValues;
+        let value = this._me.get(name);
+        this._me.delete(name);
         return value;
     }
 
@@ -998,21 +1010,21 @@ ${propStr}
     //   "world" => use getWorldState(), and use its id
 
     publishToAll(data) {
-        let listeners = this.listeners;
+        let listeners = this._listeners;
         listeners.forEach(entry => {
             this.publish(entry.scope || this.id, entry.event, data);
         });
     }
 
     addDomain(scope, event) {
-        let old = this.listeners;
+        let old = this._listeners;
         if (old.findIndex(e => e.scope === scope &&
                            e.event === event) >= 0) {
             return;
         }
         let newArray = old.slice();
         newArray.push({scope, event});
-        this.listeners = newArray;
+        this._listeners = newArray;
     }
 }
 
@@ -1343,6 +1355,19 @@ function equal(a, b) {
             return true;
         }
 
+        if (a.constructor === Map) {
+            if (a.size !== b.size) {
+                return false;
+            }
+
+            for (let k of a.keys()) {
+                if (!equal(a.get(k) ,b.get(k))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         let aKey = Object.keys(a);
         let bKey = Object.keys(b);
         if (aKey.length !== bKey.length) {return false;}
@@ -1361,12 +1386,11 @@ export class ElementView extends V {
         this.model = model;
         this.dom = this.createDom();
         this.dom._cards = true;
-        this.elementId = model.elementId;
+        this._elementId = model.elementId;
 
-        this.lastValues = {};
-        this.viewHandlers = {};
-        this.props = {};  // may have to saved in the model as the result of user interaction?
-        this.eventListeners = {}; // {evtName: {func: function, spec: string, useCapture: boolean}}
+        this._lastValues = new Map();
+        this._viewHandlers = {};
+        this._eventListeners = new Map(); // {evtName: {func: function, spec: string, useCapture: boolean}}
         if (this.model.isWorld) {
             this.subscribe(this.viewId, "synced", "synced");
         }
@@ -1383,7 +1407,7 @@ export class ElementView extends V {
             this._objectURL = null;
         }
 
-        let id = shortId(this.elementId);
+        let id = shortId(this._elementId);
         removeStyle(id);
     }
 
@@ -1414,12 +1438,12 @@ export class ElementView extends V {
     }
 
     hasHandler(traitName) {
-        let myHandler = this.viewHandlers;
+        let myHandler = this._viewHandlers;
         return !!myHandler[traitName];
     }
 
     call(traitOrNull, name, ...values) {
-        let myHandler = this.viewHandlers;
+        let myHandler = this._viewHandlers;
         let trait;
         let result;
         if (traitOrNull) {
@@ -1460,7 +1484,7 @@ export class ElementView extends V {
 
     addEventListener(evtName, spec) {
         let [fullSpec, key] = this.eventKeyFromSpec(evtName, spec);
-        if (this.viewHandlers[key]) {
+        if (this._viewHandlers[key]) {
             console.log("most likely to be duplicate");
             this.removeEventListener(evtName, spec);
         }
@@ -1482,15 +1506,15 @@ export class ElementView extends V {
             this.call(trait, method, cooked);
         };
 
-        this.viewHandlers[key] = func;
+        this._viewHandlers[key] = func;
         this.dom.addEventListener(evtName, func);
     }
 
     removeEventListener(evtName, spec) {
         let [_fullSpec, key] = this.eventKeyFromSpec(evtName, spec);
-        if (this.viewHandlers[key]) {
-            this.dom.removeEventListener(evtName, this.viewHandlers[key]);
-            delete this.viewHandlers[key];
+        if (this._viewHandlers[key]) {
+            this.dom.removeEventListener(evtName, this._viewHandlers[key]);
+            delete this._viewHandlers[key];
         }
     }
 
@@ -1587,8 +1611,8 @@ export class ElementView extends V {
 
     updateChildNodes(time, elem) {
         let newChildren = elem._childNodes;
-        if (equal(this.lastValues["childNodes"], newChildren)) {return;}
-        this.lastValues["childNodes"] = newChildren;
+        if (equal(this._lastValues.get("childNodes"), newChildren)) {return;}
+        this._lastValues.set("childNodes", newChildren);
         let childNodes = Array.from(this.dom.childNodes);
 
         // let us say the simple insertion or deletion case should work simply
@@ -1696,14 +1720,14 @@ export class ElementView extends V {
         let value;
 
         value = elem._domId;
-        if (this.lastValues["domId"] !== value) {
-            this.lastValues["domId"] = value;
+        if (this._lastValues.get("domId") !== value) {
+            this._lastValues.set("domId", value);
             this.dom.id = value;
         }
 
         value = elem._classList;
-        if (!equal(this.lastValues["classList"], value)) {
-            this.lastValues["classList"] = value;
+        if (!equal(this._lastValues.get("classList"), value)) {
+            this._lastValues.set("classList", value);
             let current = this.dom.classList;
             for (let i = current.length - 1; i >= 0; i--) {
                 this.dom.classList.remove(current[i]);
@@ -1717,36 +1741,36 @@ export class ElementView extends V {
 
         value = elem._innerHTML;
         if (typeof value === "string") {
-            if (this.lastValues["innerHTML"] !== value) {
-                this.lastValues["innerHTML"] = value;
+            if (this._lastValues.get("innerHTML") !== value) {
+                this._lastValues.set("innerHTML", value);
                 this.dom.innerHTML = value;
             }
         }
 
-        value = elem.eventListeners;
+        value = elem._eventListeners;
         this.addDomEventListenersFor(elem, this, value);
 
-        let style = elem._style.get().local;
-        let lastStyle = {...this.lastValues["style"]};
-        let newStyle = {};
+        let style = elem._style.local; // now it is a Map
+        let lastStyle = this._lastValues.get("style") || new Map();
+        let newStyle = new Map();
 
-        if (style["-cards-direct-manipulation"]) {
+        if (style.get("-cards-direct-manipulation")) {
             value = elem._style.getTransform();
-            if (!equal(this.lastValues["transform"], value)) {
-                this.lastValues["transform"] = value;
+            if (!equal(this._lastValues.get("transform"), value)) {
+                this._lastValues.set("transform", value);
                 let [a, b, c, d, e, f] = value;
                 this.dom.style.setProperty("transform", `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`);
             }
             value = elem._style.getTransformOrigin();
-            if (!equal(this.lastValues["transform-origin"], value)) {
-                this.lastValues["transform-origin"] = value;
+            if (!equal(this._lastValues.get("transform-origin"), value)) {
+                this._lastValues.set("transform-origin", value);
                 this.dom.style.setProperty("transform-origin", value);
             }
 
-            value = style.width;
-            newStyle["width"] = value;
-            delete lastStyle.width;
-            if (!equal(lastStyle["width"], value)) {
+            value = style.get("width");
+            newStyle.set("width", value);
+            lastStyle.delete("width");
+            if (!equal(lastStyle.get("width"), value)) {
                 if (value !== undefined) {
                     let v = typeof value === "string" ? value : value + "px";
                     this.dom.style.setProperty("width", v);
@@ -1755,12 +1779,12 @@ export class ElementView extends V {
                 }
             }
 
-            value = style.height;
-            newStyle["height"] = value;
-            delete lastStyle.height;
-            if (!equal(lastStyle["height"], value)) {
+            value = style.get("height");
+            newStyle.set("height", value);
+            lastStyle.delete("height");
+            if (!equal(lastStyle.get("height"), value)) {
                 if (value !== undefined) {
-                    delete lastStyle.height;
+                    lastStyle.delete("height");
                     let v = typeof value === "string" ? value : value + "px";
                     this.dom.style.setProperty("height", v);
                 } else {
@@ -1768,52 +1792,57 @@ export class ElementView extends V {
                 }
             }
         }
-        Object.keys(style).forEach((k) => {
-            if (style["-cards-direct-manipulation"] && (k === "width" || k === "height")) {return;}
+        style.forEach((v, k) => {
+            if (style.get("-cards-direct-manipulation") && (k === "width" || k === "height")) {return;}
             if (k.startsWith("-cards-")) {
-                newStyle[k] = style[k];
+                newStyle.set(k, v);
                 return;
             }
-            value = style[k];
-            newStyle[k] = value;
-            let eq = value === lastStyle[k];
-            delete lastStyle[k];
-            if (!eq) {
-                this.dom.style.setProperty(k, value);
+            newStyle.set(k, v);
+            lastStyle.delete(k);
+            if (v !== lastStyle.get(k)) {
+                this.dom.style.setProperty(k, v);
             }
         });
 
         // these lines that is here only for the first authoring system should not be here.
         let target = world._get("target");
         if (target && target.elementId === elem.elementId) {
-            newStyle["background-color"] = "#9CC6E7";
+            newStyle.set("background-color", "#9CC6E7");
             this.dom.style.setProperty("background-color", "#9CC6E7");
         }
 
         let key = "-cards-background-image-asset";
-        if (!equal(lastStyle[key], style[key])) {
-            let asset = style[key];
-            newStyle[key] = style[key];
-            Croquet.Data.fetch(this.sessionId, asset.handle).then((data) => {
-                const blob = new Blob([data], {type: asset.type});
+        if (!equal(lastStyle.get(key), style.get(key))) {
+            let asset = style.get(key);
+            newStyle.set(key, asset);
+            if (asset) {
+                Croquet.Data.fetch(this.sessionId, asset.handle).then((data) => {
+                    const blob = new Blob([data], {type: asset.type});
+                    if (this._objectURL) {
+                        URL.revokeObjectURL(this._objectURL);
+                    }
+                    this._objectURL = URL.createObjectURL(blob);
+                    this.dom.style.setProperty("background-image", `url(${this._objectURL}`);
+                });
+            } else {
+                this.dom.style.removeProperty("background-image");
                 if (this._objectURL) {
                     URL.revokeObjectURL(this._objectURL);
                 }
-                this._objectURL = URL.createObjectURL(blob);
-                this.dom.style.setProperty("background-image", `url(${this._objectURL}`);
-            });
+            }
         }
 
-        this.lastValues["style"] = newStyle;
-        for (let lastKey in lastStyle) {
+        this._lastValues.set("style", newStyle);
+        for (let lastKey of lastStyle.keys()) {
             this.dom.style.removeProperty(lastKey);
         }
 
-        let classes = elem._style.get().classes;
-        if (this.lastValues["classes"] !== classes) {
-            this.lastValues["classes"] = classes;
+        let classes = elem._style.classes;
+        if (this._lastValues.get("classes") !== classes) {
+            this._lastValues.set("classes",  classes);
 
-            let id = shortId(this.elementId);
+            let id = shortId(this._elementId);
             removeStyle(id);
             if (classes) {
                 let e = document.createElement("style");
@@ -1823,25 +1852,26 @@ export class ElementView extends V {
             }
         }
 
-        value = elem.viewCode;
-        if (!equal(this.lastValues["viewCode"], value)) {
-            this.lastValues["viewCode"] = value;
+        value = elem._viewCode;
+        if (!equal(this._lastValues.get("viewCode"), value)) {
+            this._lastValues.set("viewCode", value);
             this.addViewCode(elem, this, value);
         }
     }
 
     addDomEventListenersFor(elem, view, listeners) {
+        //listeners now a Map
         let elementId = elem.elementId;
-        let toRemove = {...this.eventListeners};
+        let toRemove = new Map(this._eventListeners);
 
-        for (let k in listeners) {
-            let obj = listeners[k];
+        for (let k of listeners.keys()) {
+            let obj = listeners.get(k);
             let spec = obj.spec;
             let useCapture = obj.useCapture;
 
-            if (this.eventListeners[k] && this.eventListeners[k].spec === spec &&
-                this.eventListeners[k].useCapture === useCapture) {
-                delete toRemove[k];
+            if (this._eventListeners.get(k) && this._eventListeners.get(k).spec === spec &&
+                this._eventListeners.get(k).useCapture === useCapture) {
+                toRemove.delete(k);
                 continue;
             }
 
@@ -1854,10 +1884,10 @@ export class ElementView extends V {
                 method = spec;
             }
 
-            if (this.eventListeners[k] && (this.eventListeners[k].spec !== spec ||
-                                           this.eventListeners[k].useCapture !== useCapture))  {
-                view.dom.removeEventListener(k, this.eventListeners[k].func);
-                delete this.eventListeners[k];
+            if (this._eventListeners.get(k) && (this._eventListeners.get(k).spec !== spec ||
+                                                this._eventListeners.get(k).useCapture !== useCapture))  {
+                view.dom.removeEventListener(k, this._eventListeners.get(k).func);
+                this._eventListeners.delete(k);
             }
 
             let func = evt => {
@@ -1871,19 +1901,19 @@ export class ElementView extends V {
                 this.publish(modelId, "domEvent", {elementId, evt: cooked, trait, method});
             };
 
-            this.eventListeners[k] = {func, spec, useCapture};
+            this._eventListeners.set(k, {func, spec, useCapture});
             view.dom.addEventListener(k, func, useCapture);
-            delete toRemove[k];
+            toRemove.delete(k);
         }
 
-        for (let k in toRemove) {
-            view.dom.removeEventListener(k, this.eventListeners[k].func);
-            delete this.eventListeners[k];
+        for (let k of toRemove.keys()) {
+            view.dom.removeEventListener(k, this._eventListeners.get(k).func);
+            this._eventListeners.delete(k);
         }
     }
 
     addViewCode(elem, view, array) {
-        let myHandler = this.viewHandlers;
+        let myHandler = this._viewHandlers;
         Object.keys(myHandler).forEach((k) => {
             if (myHandler[k] && myHandler["_" + k]) {
                 delete myHandler[k];
@@ -1923,14 +1953,14 @@ export class ElementView extends V {
 
     // this is experimental to see when we'd need to add publish domain dynamically
     publishToAll(data) {
-        let listeners = this.model.listeners;
+        let listeners = this.model._listeners;
         listeners.forEach(entry => {
             this.publish(entry.scope || this.model.sessionId, entry.event, data);
         });
     }
 
     addDomain(scope, event) {
-        let old = this.model.listeners;
+        let old = this.model._listeners;
         if (old.findIndex(e => e.scope === scope &&
                           e.event === event) >= 0) {
             return;

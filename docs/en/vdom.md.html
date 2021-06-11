@@ -52,7 +52,7 @@ When an instance of `Element` is displayed on the screen, a view object called `
 ### Actual DOM Element
 What a virtual DOM view holds onto, and what the browser actually displays on the screen.
 
-### Virtul DOM Element Reference
+### Virtual DOM Element Reference
 A reference (pointer) to a Virtual DOM Element is internally represented by a data type called `ElementRef`. ElementRef introduces a simple indirection to accommodate a slippage between the view and the model.
 
 For example, imagine that a group of users are using a graphical collaborative application. And suppose that a user sees an element on screen and tries to move the element. By the time the request arrives to the model, the object may have been already deleted by another user. Such model code needs to look up the actual object from the information sent from the view. A ElementRef serves for this need.
@@ -81,7 +81,7 @@ Run `server.js` in the top directory from a terminal using `node`.
 # node server.js &
 ~~~~~~~~
 
-If you don't have node.js insalled but have Python 2 or Python 3, you can use the equivalent server written in Python.
+If you don't have node.js installed but have Python 2 or Python 3, you can use the equivalent server written in Python.
 
 ~~~~~~~~
 # python server.py &
@@ -106,7 +106,7 @@ Here we refer to a file like `counter.js` as a library file. A library is config
 
     &lt;class definition&gt;...
 
-    &lt;export statement with "expanders",  "functions" and "classes" properties&gt;
+    &lt;export statement with "expanders", "functions" and "classes" properties&gt;
 ```
 
 In `counter.js` there is only one class definition: `Counter`.
@@ -156,7 +156,7 @@ I'll explain it line by line below.
 ~~~~~~~~ JavaScript
 class Counter {
 ~~~~~~~~
-This defines an expander named `Counter`. The keyword "class" is used to to start a definition so that the syntax checker can handle the description. In other words, the syntax to write an expander is exactly JavaScript. Code written in a library file is processed as string data, so it is not allowed to refer to "free variables" from outside the expander. However, if you need access to other expanders' code, use the initialization-function `library` argument as described below.
+This defines an expander named `Counter`. The keyword "class" is used to start a definition so that the syntax checker can handle the description. In other words, the syntax to write an expander is exactly JavaScript. Code written in a library file is processed as string data, so it is not allowed to refer to "free variables" from outside the expander. However, if you need access to other expanders' code, use the initialization-function `library` argument as described below.
 
 ~~~~~~~~ JavaScript
   init() {
@@ -173,9 +173,9 @@ You may explicitly specify the expander and the method name in the manner of:
         this.addEventListener("click", "Counter.reset");
 ~~~~~~~~
 
-However, it is very rare to invoke a method from a different expander from  where `addEventListener` is called: so the common case is just to specify the methd name..
+However, it is very rare to invoke a method from a different expander from where `addEventListener` is called, so the common case is just to specify the method name.
 
-Note that the `this` variable in the expander method refers to the virtual DOM element where it is installed. not to the expander itself.
+Note that the `this` variable in the expander method refers to the virtual DOM element where it is installed, not to the expander itself.
 
 ~~~~~~~~ JavaScript
         if (this._get("count") === undefined) {
@@ -184,13 +184,13 @@ Note that the `this` variable in the expander method refers to the virtual DOM e
 ~~~~~~~~
 As described above, `init()` may be called multiple times for already existing elements. Therefore, when you initialize a variable in `init()` and you want to keep the value even if the code changes a little while the same element survives, you should initialize it only when the value is not yet set. Checking against `undefined` here implements that. On the other hand, calling `addEventListener` for a virtual DOM element with the same arguments multiple times does not register multiple handlers. Here, the property `count` is defined for the virtual DOM element.
 
-`_get()` and `_set()` are methods to read and write the properties of a virtual DOM element. A virtual DOM element can hold only JSONizable values. Were they made readable and writable using simple dot notation, that would invite inadvertently storing inappropriate values, such as functions that have free variables. Instead, one must use the verbose `_get()` and `_set()` notation, chosen so as not to clash with internal property names, and mmust keep in mind that only JSONizable values can be stored.
+`_get()` and `_set()` are methods to read and write the properties of a virtual DOM element. A virtual DOM element can hold only JSONizable values. Were they made readable and writable using simple dot notation, that would invite inadvertently storing inappropriate values, such as functions that have free variables. Instead, one must use the verbose `_get()` and `_set()` notation, chosen so as not to clash with internal property names, and must keep in mind that only JSONizable values can be stored.
 
 ~~~~~~~~ JavaScript
             this.future(1000).call("Counter", "next");
 ~~~~~~~~
 
-`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 walk clock milliseconds, or exact 1000 logical milliseconds.
+`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 wall-clock milliseconds.
 
 In this case, the method is `call()`, meaning that the `next` method of the expander installed with the name `Counter` will be invoked. In the near future it is planned to make it possible to write just `this.future(1000).next()`, implicitly specifying that the method is on the same expander, as with other calls to expander methods.
 
@@ -304,11 +304,11 @@ The following line:
 ~~~~~~~~ JavaScript
 window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
 ~~~~~~~~
-creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last argument specifies the name of the session if it is a string, or the page access should automatically create a new shared session and add a distinguishing session ID to the URL.
+creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last argument specifies the name of the session if it is a string, or if falsy will cause the page access to automatically create a new shared session and add a distinguishing session ID to the URL.
 
 # Development and Debugging of a New Application
 
-We are deliberately avoiding complicated JavaScript bundling mechanisms, transpilation and such machinary. Instead, we pursue a development style in which you can just edit a file and reload the page to try it out immediately. To write a new application, you can create a new file like `counter.js` above, and also make your own copy of `counter.html` to call it.
+We are deliberately avoiding complicated JavaScript bundling mechanisms, transpilation and such machinery. Instead, we pursue a development style in which you can just edit a file and reload the page to try it out immediately. To write a new application, you can create a new file like `counter.js` above, and also make your own copy of `counter.html` to call it.
 
 ## `isLocal` flag
 Much of application development is about making visual adjustments and other model behavior checks, with no need to test out the sharing aspects, so working with just one client is enough. To simplify such a development cycle, if the query parameter `?isLocal` is specified in the URL, the application will be executed with the reflector's role replaced by a local emulation. In the case of `counter.html`:
@@ -319,11 +319,11 @@ http://localhost:8000/counter.html?isLocal
 will allow the application's code to be run exactly as is, but without the need for a network.
 
 ## debugger
-At present, there is a problem in that code written as an expander goes through a string representation before being evaluated and executed, which means that a browser debugger cannot locate the original source location. Good news is that by inserting a `debugger` statement the debugger can be started, or if output is generated using `console.log` then clicking on the reported line numbers in the output allows reference to the code in a "VM..." pseudo file. In the future we would like to improve the situation, such as by allowing expander code to be inserted without going through a string representation whenever possible.
+At present, there is a problem in that code written as an expander goes through a string representation before being evaluated and executed, which means that a browser debugger cannot locate the original source location. The good news is that by inserting a `debugger` statement the debugger can be started, or if output is generated using `console.log` then clicking on the reported line numbers in the output allows reference to the code in a "VM..." pseudo file. In the future we would like to improve the situation, such as by allowing expander code to be inserted without going through a string representation whenever possible.
 
 # Example 2 (Drawing)
 
-As an example of an application with view code, Here is a simple drawing program `drawing.js` and `drawing.html`.
+As an example of an application with view code, here is a simple drawing program `drawing.js` and `drawing.html`.
 
 ~~~~~~~~ JavaScript
 class DrawModel {
@@ -339,7 +339,7 @@ This model has `color` and `lines` (described below) as state properties, and ca
 
 In the case of "line" messages, we want only the view object that knows about this particular model to send "line" messages. This is achieved by using the model's `this.id` as the scope; in effect, this declares that "only this model/view pair is interested in this message". The "color" message, by contrast, comes from a distinct virtual DOM element, and is to be received by all objects used in the session. Therefore as scope we use `this.sessionId`, a shared value that all the session's objects have access to.
 
-Croquet has the persistent data mechanism to support code evolution. In essence, the developer has freedom to define a high-level application state description. When the new version of code is used, it can reconstruct the essential state from the data. In this drawing example, `lines` is deemed essential while `color` is not, and only the former is stored in the persistent data. Also, whenever pointerup message is sent from any view, the model saves the persistent data.
+Croquet has a persistent-data mechanism to support code evolution. In essence, the developer has freedom to define a high-level application state description. When a new version of code is used, it can reconstruct the essential state from that data. In this drawing example, `lines` is deemed essential while `color` is not, and only the former is stored in the persistent data. Also, whenever a pointerup message is sent from any view, the model saves the persistent data.
 
 ~~~~~~~~ JavaScript
     line(data) {
@@ -370,7 +370,7 @@ And now we send this object in a `drawLine` message, this time from the model to
 When a "color" message is received, its value is stored in a property ready for the next "line" message.
 
 
-The `savePersistentData()` calls the Croquet API to create the persistent data, and `loadPersistentData()` fills in the `lines` property from the data.  Persitent data could be arbitrary complex: but it is a good practice to keep it minimum.
+The `savePersistentData()` calls the Croquet API to create the persistent data, and `loadPersistentData()` fills in the `lines` property from the data.  Persistent data could be arbitrarily complex, but it is good practice to keep it to a minimum.
 
 ~~~~~~~~ JavaScript
 class DrawView {
@@ -379,20 +379,20 @@ class DrawView {
 ~~~~~~~~
 `DrawView` is an expander installed in the view that corresponds to the above `DrawModel`. A view expander can also register event handlers for DOM events using `addEventListener`.
 
-As of 2021, almost all common browsers supports DOM PointerEvents. We strongly recommend that an application exxlusively use pointer events, and not handle mouse events or touch events.
+As of 2021, almost all common browsers support DOM PointerEvents. We strongly recommend that an application exclusively use pointer events, and not handle mouse events or touch events.
 
 ~~~~~~~~ JavaScript
         this.subscribe(this.model.id, "drawLine", "drawLine");
 ~~~~~~~~
 In the last line of `DrawModel.line()`, a message was sent using `this.publish(this.id, "drawLine", line);` with the model's `id` as the scope and "drawLine" as the name.
 
-The model sends `cleared` message when it receives a `clear` message and resets the `lines` state. The view responds to the message and clears the canvas content.
+The model sends a `cleared` message when it receives a `clear` message and resets the `lines` state. The view responds to the message and clears the canvas content.
 
 ~~~~~~~~ JavaScript
         this.subscribe(this.model.id, "cleared", "clear");
 ~~~~~~~~
 
-An `ElementView` stores the corresponding `Element` object itself as `this.model`, and can read values (including `id`) from the model freely. To receive the "drawLine" messages, the `DrawView`'s `subscribe` specifies the same scope and the same name. This is how the sending and receiving of the "drawLine" message for a particular `DrawModel`/`DrawView` pair is set up.
+An `ElementView` stores the corresponding `Element` object itself as `this.model`, and can read values (including `id`) from the model freely. To receive "drawLine" messages, the `DrawView`'s `subscribe` specifies the same scope and the same name. This is how the sending and receiving of the "drawLine" message for a particular `DrawModel`/`DrawView` pair is set up.
 
 ~~~~~~~~ JavaScript
         this.initDraw();
@@ -447,7 +447,7 @@ In the case of views, you can store arbitrary objects in properties, using the s
         this.publish(this.model.id, "pointerUp");
     }
 ~~~~~~~~
-In `pointerUp`, the handlers temporarily added are removed and `lastPoint` is also cleared. The `releaseAllPointerCapture()`, which is a convenience method to invoke browser's `releasePointerCapture()` to clear captured pointers.
+In `pointerUp`, the handlers temporarily added are removed and `lastPoint` is also cleared. The `releaseAllPointerCapture()` is a convenience method to invoke the browser's `releasePointerCapture()` to clear captured pointers.
 
 ~~~~~~~~ JavaScript
         let offsetX = evt.offsetX;
