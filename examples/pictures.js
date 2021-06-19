@@ -102,7 +102,6 @@ class PictureModel {
 
         img.style.setProperty("width", `${width}px`);
         img.style.setProperty("height", `${height}px`);
-
         
         if (entry.key !== 0) {
             img._set("src", {handle, type});

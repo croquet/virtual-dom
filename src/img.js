@@ -47,6 +47,17 @@ ImageElement.register("ImageElement");
 export class ImageView extends ElementView {
     createDom() {
         this.img = document.createElement("img");
+        this.img.onload = () => {
+            if (this.onload) {
+                this.call(...this.onload, this);
+            }
+        };
+
+        this.img.onerror = () => {
+            if (this.onerror)  {
+                this.call(...this.onerror, this);
+            }
+        };
         return this.img;
     }
 

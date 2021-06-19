@@ -1563,6 +1563,9 @@ export class ElementView extends V {
                 isPrimary: evt.isPrimary,
                 type: evt.type, target: target, clientX, clientY,
                 offsetX: offsetX, offsetY: offsetY, shiftKey: evt.shiftKey,
+                pressure: evt.pressure,
+                width: evt.width,
+                height: evt.height,
                 stopPropagation: () => evt.stopPropagation(),
                 preventDefault: () => evt.preventDefault()
             };
