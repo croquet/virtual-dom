@@ -49,7 +49,7 @@ mkdir -p dist/examples
 mkdir -p dist/src
 mkdir -p dist/widgets
 cp examples/<your example.js> dist/examples/
-npx rollup src/framework.js --config rollup.config.js --file dist/src/framework.js --format es
+npx rollup src/croquet-virtual-dom.js --config rollup.config.js --file dist/src/croquet-virtual-dom.js --format es
 npx rollup widgets/widgets.js --config rollup.config.js --file dist/widgets/widgets.js --format es
 cp croquet/croquet-latest.min.js dist/croquet/croquet-latest.min.js
 ~~~~~~~~
