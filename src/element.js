@@ -1564,6 +1564,7 @@ export class ElementView extends V {
                 type: evt.type, target: target, clientX, clientY,
                 offsetX: offsetX, offsetY: offsetY, shiftKey: evt.shiftKey,
                 pressure: evt.pressure,
+                force: evt.force,
                 width: evt.width,
                 height: evt.height,
                 stopPropagation: () => evt.stopPropagation(),
@@ -1592,8 +1593,12 @@ export class ElementView extends V {
             }
 
             let result = {
+                type: evt.type,
                 touches: evt.touches, target: target, clientX, clientY,
                 offsetX: offsetX, offsetY: offsetY,
+                force: evt.force,
+                altitudeAngle: evt.altitudeAngle,
+                azimuthAngle: evt.azimuthAngle,
                 buttons: evt.buttons, shiftKey: evt.shiftKey,
                 stopPropagation: () => evt.stopPropagation(),
                 preventDefault: () => evt.preventDefault()

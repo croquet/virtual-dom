@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Element, ElementView} from './element.js';
 
-const attributes = ["src", "allow", "importance", "loading", "name", "referrerpolicy", "sandbox", "width"];
+const attributes = ["src", "allow", "importance",  "name", "referrerpolicy", "sandbox", "width"];
 
 export class IFrameElement extends Element {
     static viewClass() {return IFrameView;}
