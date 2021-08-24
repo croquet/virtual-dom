@@ -1159,7 +1159,7 @@ export class TopView extends V {
 
     pluggableDispatch(component, selector, data) {
         let entry = this[component];
-        if (!entry) {return;}
+        if (!entry) {return null;}
         return entry.target.call(entry.trait, entry[selector], data);
     }
 
@@ -2086,13 +2086,18 @@ class GlobalPointerGrabber {
         if (pointerId !== undefined) {
             let dom = this.pointerCaptureMap.get(pointerId);
             if (maybeDom !== dom) {console.log("inconsistent capture");}
-            dom.releasePointerCapture(pointerId);
-            this.pointerCaptureMap.delete(pointerId);
+            try {
+                dom.releasePointerCapture(pointerId);
+            } finally {
+                this.pointerCaptureMap.delete(pointerId);
+            }
             return;
         }
 
         this.pointerCaptureMap.forEach((dom, k) => {
-            dom.releasePointerCapture(k);
+            try {
+                dom.releasePointerCapture(k);
+            } catch (e) {/* ignore */}
         });
         this.pointerCaptureMap.clear();
     }
