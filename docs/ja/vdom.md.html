@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2021-05-19
+  Last Modified: 2021-08-20
 
 # はじめに
 
@@ -283,7 +283,7 @@ main.jsから`makeMain`を、library.jsから`Library`をimportするのは、�
 ~~~~~~~~ JavaScript
 window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
 ~~~~~~~~
-の行は、`counter.beCounter`として登録されている関数をエントリポイントとし、そのセッションのオプションとして[Croquet SDK Document](https://croquet.io/sdk/docs)に記述されているオプションの一つautoSleepを指定し、上記で作成した`library`オブジェクトを渡してonloadハンドラとして呼び出せる関数を作っている。最後の引数は、もし文字列を渡した場合はそれをセッションのIDとし、もしfalsyであれば自動的にURLから新しいセッションIDを作るという意味である。
+の行は、`counter.beCounter`として登録されている関数をエントリポイントとし、そのセッションのオプションとして[Croquet Documentation](https://croquet.io/docs)に記述されているオプションの一つautoSleepを指定し、上記で作成した`library`オブジェクトを渡してonloadハンドラとして呼び出せる関数を作っている。最後の引数は、もし文字列を渡した場合はそれをセッションのIDとし、もしfalsyであれば自動的にURLから新しいセッションIDを作るという意味である。
 
 # 新しいアプリケーションの開発とデバッグ
 

@@ -9,7 +9,7 @@ import {epidemic} from "../examples/epidemic.js";
 let library = new Library();
 library.addLibrary("epidemic", epidemic);
 
-window.onload = makeMain("epidemic.beEpidemic", {autoSleep: false, tps: 20, appId: "io.croquet.vdom.epidemic"}, library, null);
+window.onload = makeMain("epidemic.beEpidemic", {tps: 20, appId: "io.croquet.vdom.epidemic"}, library, null);
   </script>
 </head>
   <body style="touch-action: none">

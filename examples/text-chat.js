@@ -35,13 +35,14 @@ class ChatModel {
         console.log("ChatModel.init");
     }
 
-    setLimit(number) {
+    setLimit(data) {
+        let { number, timestamp } = data;
         number = Math.min(Math.max(number, 1), 1000);
         this._set("limit", number);
         let post = {nickname: "(system)",
                     text: `history limit is set to ${number}.`,
                     userColor: "#000000",
-                    timestamp: Date.now()};
+                    timestamp};
         this.newPost(post);
     }
 
@@ -229,7 +230,7 @@ class ChatView {
             if (command.type === "reset") {
                 this.publish(this.model.id, "reset");
             } else if (command.type  === "setlimit") {
-                this.publish(this.model.id, "setLimit", command.value);
+                this.publish(this.model.id, "setLimit", { number: command.value, timestamp: Date.now() });
             } else if (command.type  === "help") {
                 let help = [
                     "/reset -- reset the history",

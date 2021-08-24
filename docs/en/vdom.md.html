@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2021-05-19
+  Last Modified: 2021-08-20
 
 # Introduction
 
@@ -68,7 +68,7 @@ First of all, I would like to refer to `examples/counter.js` and `counter.html` 
 
 ## Invocation
 
-First, copy the Croquet SDK file into a directory called `croquet.
+First, copy the Croquet Client Library file into a directory called `croquet`.
 
 ~~~~~~~~
 # mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
@@ -287,7 +287,7 @@ Picking out some details:
 ~~~~~~~~ HTML
   &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
 ~~~~~~~~
-This loads the Croquet SDK file copied into the `croquet` directory. Alternatively, you can load a stable version of the SDK from `https://unpkg.com/@croquet/croquet@0.5.0`.
+This loads the Croquet library copied into the `croquet` directory. Alternatively, you can load a stable version of Croquet from `https://unpkg.com/@croquet/croquet@0.5.0`.
 
 ~~~~~~~~ JavaScript
 import {makeMain, Library} from "./src/framework.js";
@@ -304,7 +304,7 @@ The following line:
 ~~~~~~~~ JavaScript
 window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
 ~~~~~~~~
-creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet SDK Document](https://croquet.io/sdk/docs)), and the `library` object that was created above. The last argument specifies the name of the session if it is a string, or if falsy will cause the page access to automatically create a new shared session and add a distinguishing session ID to the URL.
+creates the function to be called as the `onload` handler, specifying the function registered as `counter.beCounter` as the entry point, with the `autoSleep` session option (described in the [Croquet Documentation](https://croquet.io/docs)), and the `library` object that was created above. The last argument specifies the name of the session if it is a string, or if falsy will cause the page access to automatically create a new shared session and add a distinguishing session ID to the URL.
 
 # Development and Debugging of a New Application
 

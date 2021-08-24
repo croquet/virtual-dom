@@ -9,7 +9,7 @@ For basic concepts and examples, please refer to `docs/en/vdom.md.html`.
 
 ## Installation
 
-There is exactly one external dependency, which is the Croquet SDK library. You can simply copy the SDK to your local directory:
+There is exactly one external dependency, which is the Croquet Client library. You can simply copy that library to your local directory:
 
 ~~~~~~~~
 # mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0

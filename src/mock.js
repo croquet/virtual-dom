@@ -21,7 +21,7 @@ import {newId} from './timeObject.js';
 // this file provides a crude "mock" classes that allows the developer quickly try
 // things out when the Croquet part is not necessary.
 
-// its implementation is sensitive to the internal of the Croquet SDK
+// its implementation is sensitive to the internals of Croquet
 // and assumes some global variable usage such as "ISLAND".
 // In a longer term, a cleaner solution is desired but for now it proved to be quite useful
 // to be able to test things out quickly.

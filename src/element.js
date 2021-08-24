@@ -1159,8 +1159,8 @@ export class TopView extends V {
 
     pluggableDispatch(component, selector, data) {
         let entry = this[component];
-        if (!entry) {console.warn(`dispatch not available for ${component}`);}
-        return entry && entry.target.call(entry.trait, entry[selector], data);
+        if (!entry) {return;}
+        return entry.target.call(entry.trait, entry[selector], data);
     }
 
     grab(view, moveFuncOrSpec, upFuncOrSpec, forTouch) {
