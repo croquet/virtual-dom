@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2021-08-20
+  Last Modified: 2021-09-15
 
 # はじめに
 
@@ -246,6 +246,7 @@ counter.jsのようなライブラリー・ファイルからは、`expanders`�
 
 これを呼び出すcounter.htmlは以下のようになっている。
 ~~~~~~~~ HTML
+&lt;doctype! html&gt;
 &lt;html&gt;
   &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
@@ -564,11 +565,12 @@ export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 
-<script src="https://unpkg.com/@croquet/croquet@0.5.0"></script>
-<script src="../turner.js"></script>
+<script src="https://unpkg.com/@croquet/croquet"></script>
+<script src="https://unpkg.com/page-synchronizer@1.0.3"></script>
 <script type="text/javascript">
 if (window.location.search !== "") {
-    Croquet.Session.join(window.location.href, SimplePageModel, SimplePageView, {tps: 0})
-	.then((session) => session.view.initCroquetMessenger());
+    SimplePageView.start({
+        apiKey: "<your apiKey from croquet.io/keys>",
+    })
 }
 </script>

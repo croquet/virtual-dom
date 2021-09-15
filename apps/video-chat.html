@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -11,7 +12,12 @@ let library = new Library();
 library.addLibrary("videoChat", videoChat);
 library.addLibrary("widgets", widgets);
 
-window.onload = makeMain("videoChat.beChat", {autoSleep: false, appId: "io.croquet.vdom.videochat"}, library, null, "./video-chat.svg");
+window.onload = makeMain("videoChat.beChat", {
+    autoSleep: false,
+    appId: "io.croquet.vdom.videochat"
+    apiKey: "<your apiKey from croquet.io/keys>",
+    password: "dummy",
+}, library, null, "./video-chat.svg", true);
   </script>
 </head>
   <body style="touch-action: none">

@@ -22,7 +22,7 @@ import {newId} from './timeObject.js';
 // things out when the Croquet part is not necessary.
 
 // its implementation is sensitive to the internals of Croquet
-// and assumes some global variable usage such as "ISLAND".
+// and assumes some global variable usage such as "CROQUETVM".
 // In a longer term, a cleaner solution is desired but for now it proved to be quite useful
 // to be able to test things out quickly.
 
@@ -34,10 +34,10 @@ function getIsLocal() {
 export const isLocal = getIsLocal();
 let session;
 let viewDomain;
-let myIsland;
+let myVM;
 
-function currentIsland(island) {
-    window.ISLAND = island;
+function currentVM(vm) {
+    window.CROQUETVM = vm;
 }
 
 export function getElement(ref) {
@@ -46,8 +46,8 @@ export function getElement(ref) {
         console.error("element's id is falsy in getElement", elementId);
         return null;
     }
-    let island = isLocal ? myIsland : window.ISLAND;
-    let world = island.modelsByName["worldModel"];
+    let vm = isLocal ? myVM : (window.CROQUETVM || window.ISLAND);
+    let world = vm.get("worldModel");
     let id = world.objects[elementId];
 
     if (!id) {return null;}
@@ -67,10 +67,10 @@ class FutureHandler {
                     return new Proxy(target[property], {
                         apply(method, _this, args) {
                             setTimeout(() => {
-                                let oldIsland = window.ISLAND;
-                                currentIsland(myIsland);
+                                let oldVM = window.CROQUETVM;
+                                currentVM(myVM);
                                 method.apply(target, args);
-                                currentIsland(oldIsland);
+                                currentVM(oldVM);
                             }, tOffset);
                         }
                     });
@@ -85,9 +85,9 @@ class Model {
     static create(options) {
         let n = new this();
         n.init(options);
-        myIsland.modelsById[n.id] = n;
-        if (!window.ISLAND.modelsByName.modelRoot) {
-            window.ISLAND.modelsByName.modelRoot = n;
+        myVM.modelsById[n.id] = n;
+        if (!window.CROQUETVM.modelsByName.modelRoot) {
+            window.CROQUETVM.modelsByName.modelRoot = n;
         }
         return n;
     }
@@ -96,18 +96,18 @@ class Model {
 
     constructor() {
         this.id = newId();
-        this.__realm = {island: window.ISLAND};
+        this.__realm = {vm: window.CROQUETVM};
         this.start = Date.now();
     }
 
     init() {}
 
-    get island() {
-        return myIsland;
+    get vm() {
+        return myVM;
     }
 
     get sessionId() {
-        return this.island.id;
+        return this.vm.id;
     }
 
     destroy() {
@@ -115,30 +115,30 @@ class Model {
     }
 
     subscribe(scope, event, methodName) {
-        let island = myIsland;
-        island.addSubscription(this, scope, event, methodName);
+        let vm = myVM;
+        vm.addSubscription(this, scope, event, methodName);
     }
 
     unsubscribe(scope, event, methodName) {
-        let island = myIsland;
-        island.removeSubscription(this, scope, event, methodName);
+        let vm = myVM;
+        vm.removeSubscription(this, scope, event, methodName);
     }
 
     publish(scope, message, data) {
-        let island = myIsland;
-        island.publishFromModel(scope, message, data);
+        let vm = myVM;
+        vm.publishFromModel(scope, message, data);
     }
 
     beWellKnownAs(name) {
-        this.island.modelsByName[name] =  this;
+        this.vm.modelsByName[name] =  this;
     }
 
     wellKnownModel(name) {
-        return this.island.modelsByName[name];
+        return this.vm.modelsByName[name];
     }
 
     getModel(id) {
-        return this.island.lookUpModel(id);
+        return this.vm.lookUpModel(id);
     }
 
     future(tOffset = 0) {
@@ -208,10 +208,10 @@ class ViewDomain {
     }
 
     publishFromView(scope, event, data) {
-        let island = myIsland;
-        currentIsland(island);
-        island.handleViewEventInModel(scope, event, data);
-        currentIsland(null);
+        let vm = myVM;
+        currentVM(vm);
+        vm.handleViewEventInModel(scope, event, data);
+        currentVM(null);
         this.handleViewEventInView(scope, event, data);
     }
 
@@ -293,17 +293,21 @@ class ViewDomain {
     }
 }
 
-export class Island {
+export class VirtualMachine {
     constructor() {
         this.subscriptions = {};
         this.modelsById = {};
         this.modelsByName = {};
         this.id = newId();
-        window.ISLAND = this;
+        window.CROQUETVM = this;
     }
 
     lookUpModel(id) {
         return this.modelsById[id];
+    }
+
+    get(name) {
+        return this.modelsByName[name];
     }
 
     addSubscription(model, scope, event, methodName) {
@@ -336,18 +340,18 @@ export class Island {
     }
 
     publishFromView(scope, event, data) {
-        let island = myIsland;
-        currentIsland(island);
+        let vm = myVM;
+        currentVM(vm);
         this.handleViewEventInModel(scope, event, data);
-        currentIsland(null);
+        currentVM(null);
         this.handleViewEventInView(scope, event, data);
     }
 
-    handleViewEventInAllIslands(scope, event, data) {
-        let island = myIsland;
-        currentIsland(island);
-        island.handleViewEventInModel(scope, event, data);
-        currentIsland(this);
+    handleViewEventInAllVMs(scope, event, data) {
+        let vm = myVM;
+        currentVM(vm);
+        vm.handleViewEventInModel(scope, event, data);
+        currentVM(this);
     }
 
     handleModelEventInModel(scope, event, data) {
@@ -397,10 +401,10 @@ export class Island {
     }
 
     handleModelEventInView(scope, event, data) {
-        let island = myIsland;
-        currentIsland(null);
+        let vm = myVM;
+        currentVM(null);
         viewDomain.handleModelEvent(scope, event, data);
-        currentIsland(island);
+        currentVM(vm);
     }
 }
 
@@ -408,17 +412,17 @@ export const M = isLocal ? Model : Croquet.Model;
 export const V = isLocal ? View : Croquet.View;
 
 function makeController(modelClass, viewClass, options) {
-    let island = new Island();
-    window.ISLAND = island;
-    myIsland = island;
-    currentIsland(island);
+    let vm = new VirtualMachine();
+    window.CROQUETVM = vm;
+    myVM = vm;
+    currentVM(vm);
 
     let firstViewDomain = !viewDomain;
     if (firstViewDomain) {
         viewDomain = new ViewDomain();
     }
 
-    let s = {model: null, view: null, id: island.id, persistentId: "abcdef"};
+    let s = {model: null, view: null, id: vm.id, persistentId: "abcdef"};
 
     if (!session) {
         session = s;
@@ -428,8 +432,8 @@ function makeController(modelClass, viewClass, options) {
     let view = new viewClass(model);
 
     setTimeout(() => {
-        window.ISLAND = island;
-        island.publishFromModel(island.id, "view-join", view.viewId);
+        window.CROQUETVM = vm;
+        vm.publishFromModel(vm.id, "view-join", view.viewId);
     }, 100);
 
     s.model = model;
@@ -440,7 +444,7 @@ function makeController(modelClass, viewClass, options) {
         viewDomain.frame.bind(viewDomain)();
     }
 
-    // currentIsland(oldIsland);
+    // currentVM(oldVM);
     return Promise.resolve(s);
 }
 
@@ -456,14 +460,14 @@ export async function createSession(name, modelClass, viewClass, parameters) {
         });
     }
 
-    if (!parameters.options || !parameters.options.sessionName) {
+    if (parameters.options && !parameters.options.sessionName) {
         Croquet.App.sessionURL = window.location.href;
         parameters.options.sessionName = window.location.href;
     }
 
     let arg = {
         ...parameters,
-        name: parameters.options.sessionName,
+        name,
         password: parameters.password || "dummy",
         model: modelClass,
         view: viewClass,
@@ -476,9 +480,9 @@ export async function createSession(name, modelClass, viewClass, parameters) {
     });
 }
 
-export async function destroySession(islandId) {
+export async function destroySession(sessionId) {
     if (isLocal) {
         return null;
     }
-    return Croquet.Session.destroySession(islandId);
+    return Croquet.Session.destroySession(sessionId);
 }

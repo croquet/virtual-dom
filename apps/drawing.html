@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -9,7 +10,12 @@ import {drawing} from "../examples/drawing.js";
 let library = new Library();
 library.addLibrary("drawing", drawing);
 
-window.onload = makeMain("drawing.beDrawing", {autoSleep: false, appId: "io.croquet.vdom.drawing", tps: 0}, library, null);
+window.onload = makeMain("drawing.beDrawing", {
+    autoSleep: false,
+    appId: "io.croquet.vdom.drawing",
+    apiKey: "<your apiKey from croquet.io/keys>",
+    password: "dummy",
+    tps: 0}, library, null, null, true);
   </script>
 </head>
   <body style="touch-action: none">

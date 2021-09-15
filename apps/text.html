@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -12,7 +13,12 @@ let library = new Library();
 library.addLibrary("text", text);
 library.addLibrary("widgets", widgets);
 
-    window.onload = makeMain("text.beText", {tps: 0, appId: "io.croquet.vdom.text"}, library, null);
+window.onload = makeMain("text.beText", {
+    apiKey: "<your apiKey from croquet.io/keys>",
+    appId: "io.croquet.vdom.text"
+    tps: 0,
+    password: "dummy",
+}, library, null, null, true);
   </script>
 </head>
   <body style="touch-action: none">

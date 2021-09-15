@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html style="touch-action: none">
   <head>
     <meta charset="UTF-8">
@@ -15,7 +16,11 @@ library.addLibrary("widgets", widgets);
 
 library.installAsBaseLibrary();
     
-window.onload = makeMain("chat.beChat", {autoSleep: false, appId: "io.croquet.vdom.textchat", tps: 1}, library, null, "./text-chat.svg");
+window.onload = makeMain("chat.beChat", {
+    appId: "io.croquet.vdom.textchat",
+    apiKey: "<your apiKey from croquet.io/keys>",
+    password: "dummy",
+    tps: 1}, library, null, "./text-chat.svg", true);
   </script>
 </head>
   <body style="touch-action: none">

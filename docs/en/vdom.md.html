@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 **The Croquet Virtual DOM Framework**
-  Last Modified: 2021-08-20
+  Last Modified: 2021-09-15
 
 # Introduction
 
@@ -53,9 +53,9 @@ When an instance of `Element` is displayed on the screen, a view object called `
 What a virtual DOM view holds onto, and what the browser actually displays on the screen.
 
 ### Virtual DOM Element Reference
-A reference (pointer) to a Virtual DOM Element is internally represented by a data type called `ElementRef`. ElementRef introduces a simple indirection to accommodate a slippage between the view and the model.
+A reference (pointer) to a Virtual DOM Element is internally represented by a data type called `ElementRef`. ElementRef introduces a simple indirection to accommodate possible slippage between the view and the model.
 
-For example, imagine that a group of users are using a graphical collaborative application. And suppose that a user sees an element on screen and tries to move the element. By the time the request arrives to the model, the object may have been already deleted by another user. Such model code needs to look up the actual object from the information sent from the view. A ElementRef serves for this need.
+For example, imagine that a group of users are using a graphical collaborative application. A user sees an element on screen and tries to move it, but by the time the request arrives at the model it is possible that that element has already been deleted by another user. The information sent from the view must allow the model code to look up the intended object, if it indeed still exists. An ElementRef serves this need.
 
 ### expander
 Behavior defined as a set of methods that can be "installed" in `Element` or `ElementView`. These are JavaScript classes written according to specific conventions.
@@ -68,13 +68,13 @@ First of all, I would like to refer to `examples/counter.js` and `counter.html` 
 
 ## Invocation
 
-First, copy the Croquet Client Library file into a directory called `croquet`.
+First, copy the Croquet library file into a directory called `croquet.
 
 ~~~~~~~~
-# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@1.0
 ~~~~~~~~
 
-The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@0.5.0/pub/croquet.min.js`.
+The `-L` option specifies to follow redirection. You may also copy the file from `https://unpkg.com/@croquet/croquet@1.0/pub/croquet.min.js`, or replace the `&lt;script&gt;` tag to point to the unpkg URL.
 
 Run `server.js` in the top directory from a terminal using `node`.
 ~~~~~~~~
@@ -166,9 +166,9 @@ This defines an expander named `Counter`. The keyword "class" is used to start a
 ~~~~~~~~ JavaScript
         this.addEventListener("click", "reset");
 ~~~~~~~~
-This adds an event handler for when a DOM click event occurs on the virtual DOM element where this expander is installed. Internally, a click handler is added to the actual DOM element, and when the user clicks, it is delivered to this expander. `"reset"` is the name of the method in the expander to be involved.
+This adds an event handler for when a DOM click event occurs on the virtual DOM element where this expander is installed. Internally, a click handler is added to the actual DOM element, and when the user clicks, it is delivered to this expander. `"reset"` is the name of the method in the expander to be invoked.
 
-You may explicitly specify the expander and the method name in the manner of:
+You can explicitly specify the expander as well as the method name, in the following manner:
 ~~~~~~~~ JavaScript
         this.addEventListener("click", "Counter.reset");
 ~~~~~~~~
@@ -190,7 +190,7 @@ As described above, `init()` may be called multiple times for already existing e
             this.future(1000).call("Counter", "next");
 ~~~~~~~~
 
-`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so the elapsed real time is also about 1000 wall-clock milliseconds.
+`future()` is like `setTimeout()`, with an argument specifying milliseconds of logical time. Based on the heartbeat sent by the reflector, all participating clients invoke the specified method after the specified time has elapsed. Normally, this logical time is synchronized with real time, so here the elapsed real time will also be about 1000 wall-clock milliseconds.
 
 In this case, the method is `call()`, meaning that the `next` method of the expander installed with the name `Counter` will be invoked. In the near future it is planned to make it possible to write just `this.future(1000).next()`, implicitly specifying that the method is on the same expander, as with other calls to expander methods.
 
@@ -250,7 +250,7 @@ You may call `setCode` with the actual code string of the expander, as opposed t
 ~~~~~~~~ JavaScript
     text.setCode(parent.getLibrary("counter.Counter"));
 ~~~~~~~~
-The latter form is useful when the expander may be modified at runtime, but the common case is the former style.
+This form would be the one to use in cases where the expander may be modified at runtime.
 
 ~~~~~~~~ JavaScript
 export const counter = {
@@ -262,18 +262,25 @@ A library file like `counter.js` exports objects with properties `expanders` and
 
 The `counter.html` that calls it looks like this:
 ~~~~~~~~ HTML
+&lt;!DOCTYPE html&gt;
 &lt;html&gt;
   &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
-  &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
+  &lt;script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
   &lt;script type="module"&gt;
-import {makeMain, Library} from "./src/framework.js";
+import {makeMain, Library} from "../src/croquet-virtual-dom.js";
 
-import {counter} from "./examples/counter.js";
+import {counter} from "../examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
 
-window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
+window.onload = makeMain("counter.beCounter", {
+    autoSleep: false,
+    appId: "io.croquet.vdom.counter",
+    apiKey: "&lt;your api key from croquet.io/keys&gt;",
+    password: "dummy",
+    tps: 1
+}, library, "counter", null, true);
   &lt;/script&gt;
 &lt;/head&gt;
   &lt;body style="touch-action: none"&gt;
@@ -287,7 +294,7 @@ Picking out some details:
 ~~~~~~~~ HTML
   &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js"&gt;&lt;/script&gt;
 ~~~~~~~~
-This loads the Croquet library copied into the `croquet` directory. Alternatively, you can load a stable version of Croquet from `https://unpkg.com/@croquet/croquet@0.5.0`.
+This loads the Croquet library copied into the `croquet` directory. Alternatively, you can load a stable version of Croquet from `https://unpkg.com/@croquet/croquet@1.0`.
 
 ~~~~~~~~ JavaScript
 import {makeMain, Library} from "./src/framework.js";
@@ -582,15 +589,16 @@ Another thing to note is that you cannot do JavaScript asynchronous processing i
 # Example 4 (Text Chat)
 In `apps/text-chat.html` and `examples/text-chat.js` you can find an example of a simple text chat. A notable feature introduced in the example is a way to specify the CSS class strings to control the appearance of the application. The initialization function `beChat` calls the `setStyleClasses()` method on `chat` element. The selectors matches with the `domId` property of the virtual DOM element that will become the `id` property of the actual DOM element, and the CSS class names added by `classList.add()`.
 
-The `setStyleClasses()` method specifies a CSS string that persists until as long as the element stays in the DOM scene tree. For a certain kind of applications, such CSS strings can be attached to different elements instead of having one large string for the top-level element. In this particular case, however, where many similar elements with the same class will be added and removed from the DOM scene tree, it is more concise to just have a single description at the top level.
+The `setStyleClasses()` method specifies a CSS string that persists as long as the element stays in the DOM scene tree. For a certain kind of applications, such CSS strings can be attached to different elements instead of having one large string for the top-level element. In this particular case, however, where many similar elements with the same class will be added and removed from the DOM scene tree, it is more concise to just have a single description at the top level.
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 
-<script src="https://unpkg.com/@croquet/croquet@0.5.0"></script>
-<script src="../turner.js"></script>
+<script src="https://unpkg.com/@croquet/croquet"></script>
+<script src="https://unpkg.com/page-synchronizer@1.0.3"></script>
 <script type="text/javascript">
 if (window.location.search !== "") {
-    Croquet.Session.join(window.location.href, SimplePageModel, SimplePageView, {tps: 0})
-    	.then((session) => session.view.initCroquetMessenger());
+    SimplePageView.start({
+        apiKey: "<your apiKey from croquet.io/keys>",
+    })
 }
 </script>

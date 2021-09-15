@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -9,7 +10,12 @@ import {epidemic} from "../examples/epidemic.js";
 let library = new Library();
 library.addLibrary("epidemic", epidemic);
 
-window.onload = makeMain("epidemic.beEpidemic", {tps: 20, appId: "io.croquet.vdom.epidemic"}, library, null);
+window.onload = makeMain("epidemic.beEpidemic", {
+    appId: "io.croquet.vdom.epidemic",
+    apiKey: "<your apiKey from croquet.io/keys>",
+    tps: 20,
+    password: "dummy",
+}, library, null, null, true);
   </script>
 </head>
   <body style="touch-action: none">

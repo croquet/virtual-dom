@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -9,7 +10,14 @@ import {counter} from "../examples/counter.js";
 let library = new Library();
 library.addLibrary("counter", counter);
 
-window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croquet.vdom.counter", tps: 1}, library, "counter");
+window.onload = makeMain("counter.beCounter", {
+    autoSleep: false,
+    appId: "io.croquet.vdom.counter",
+    apiKey: "<your apiKey from croquet.io/keys>",
+    password: "dummy",
+    tps: 1,
+    debug: ["hashing"]
+}, library, "counter", null, true);
   </script>
 </head>
   <body style="touch-action: none">

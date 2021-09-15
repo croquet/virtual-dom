@@ -19,7 +19,7 @@ import {start, TopModel, Element} from "./element.js";
 import {initializeElementClasses} from "./globals.js";
 import {loader, svgSpriteLoader} from "./loader.js";
 
-function single(code, sessionOptions, sessionName, init) {
+function single(code, sessionOptions, sessionName, init, hashModelOptions) {
     class Model extends TopModel {
         init(options, persistentData) {
             super.init(options, persistentData);
@@ -31,23 +31,44 @@ function single(code, sessionOptions, sessionName, init) {
             element.beWorld();
             element.style.setProperty("height", "100%");
             element.topChild = true;
-            element.evaluate(options.code, options.json, options.projectCode, persistentData);
+            element.evaluate(this.initProjectCode(), options.json, options.projectCode, persistentData);
+        }
+
+        initProjectCode() {
+            return `return function projectCode(parent, json, persistentData) {
+    parent.topChild = true;
+    parent.domId = "top";
+    parent.style.setProperty("position", "relative");
+    parent.style.setProperty("overflow", "hidden");
+    parent.style.setProperty("width", "100%");
+    parent.style.setProperty("height", "100%");
+    let initializer = parent.getLibrary("${init}");
+    let func = new Function(initializer)();
+    func(parent, json, persistentData);
+    return parent;
+}`;
+        }
+
+        initSessionName() {
+            return sessionName;
         }
     }
 
     Model.register("Model");
 
     if (sessionName) {
-        return loader(code, null, Model, Element, start, sessionOptions, sessionName);
+        return loader(code, null, Model, Element, start, sessionOptions, sessionName, hashModelOptions);
     }
 
-    Croquet.App.autoSession("q").then((name) => {
+    return Croquet.App.autoSession("q").then((name) => {
         name = `${init}-${name}`;
-        loader(code, null, Model, Element, start, sessionOptions, name);
+        loader(code, null, Model, Element, start, sessionOptions, name, hashModelOptions);
     });
 }
 
-export function makeMain(init, sessionOptions, library, sessionName, svgFileName) {
+export function makeMain(init, sessionOptions, library, sessionName, svgFileName, hashModelOptions) {
+    // this code snippet is now superceded. But we are still passing this in as an option
+    // to keep the hash of the options the same.
     let projectCode = `
 return function projectCode(parent, json, persistentData) {
     parent.topChild = true;
@@ -68,6 +89,6 @@ return function projectCode(parent, json, persistentData) {
     return async function main() {
         initializeElementClasses();
         library.installAsBaseLibrary();
-        single(projectCode, sessionOptions, sessionName, init);
+        single(projectCode, sessionOptions, sessionName, init, hashModelOptions);
     };
 }

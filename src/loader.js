@@ -14,9 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function loader(code, json, Model, Element, start, sessionOptions, sessionName) {
-    let parameters = {...sessionOptions, options: {code, json}};
-    start(sessionName, Model, null, parameters);
+export function loader(code, json, Model, Element, start, sessionOptions, sessionName, hashModelOptions) {
+    let parameters = {...sessionOptions};
+    if (hashModelOptions) {
+        parameters.options = {code, json};
+    }
+    return start(sessionName, Model, null, parameters);
 }
 
 export function svgSpriteLoader(svgFileName) {

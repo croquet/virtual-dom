@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
@@ -11,7 +12,11 @@ import {pictures} from "../examples/pictures.js";
 let library = new Library();
 library.addLibrary("pictures", pictures);
 
-window.onload = makeMain("pictures.pictureStart", {autoSleep: false, appId: "io.croquet.vdom.pictures", tps: 0}, library, null);
+window.onload = makeMain("pictures.pictureStart", {
+    appId: "io.croquet.vdom.pictures",
+    apiKey: "<your apiKey from croquet.io/keys>",
+    password: "dummy",
+    tps: 0}, library, null, null, true);
     </script>
   </head>
   <body style="touch-action: none">

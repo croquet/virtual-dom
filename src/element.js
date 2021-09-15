@@ -48,7 +48,7 @@ function newProxy(object, handler, trait) {
 }
 
 function asKey(arg1) {
-    // historically, a key was a pair of island id and element id.
+    // historically, a key was a pair of persistent id and element id.
     // however we simplied it to be just the element id now.
     // Still the concept of "key" is here to distinguish it
     // as a different type from simple id.
@@ -175,22 +175,6 @@ export class Element extends M {
         this.$handlers = {};
         this.worldState = null;
         this._subscriptions = new Map();
-        /*
-        if (options && options.code) {
-            this.beWorld();
-            this.options = {};
-            this.options.autoSleep = options.autoSleep;
-            this.options.tps = options.tps;
-            this.options.step = options.step;
-            this.library = options.library; // revisit this
-            if (typeof options.library === "object" && options.library.constructor.name !== "Library") {
-                this.library = new Library();
-                this.library.library = options.library.library;
-            }
-
-            this.future(1).evaluate(options.code, options.json, options.projectCode);
-        }
-        */
     }
 
     static viewClass() {return ElementView;}
@@ -2104,9 +2088,10 @@ class GlobalPointerGrabber {
 }
 
 export function start(sessionName = "elem", modelClass, viewClass, parameters = {}) {
-    if (!parameters.options) parameters.options = {};
-    parameters.options.sessionName = sessionName;
-    parameters.options.appId = parameters.appId;
+    if (parameters.options) {
+        parameters.options.sessionName = sessionName;
+        parameters.options.appId = parameters.appId;
+    }
 
     return createSession(sessionName, modelClass || TopModel, viewClass || TopView, parameters);
 }
