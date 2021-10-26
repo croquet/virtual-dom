@@ -156,7 +156,7 @@ class Model {
 
 class View {
     constructor(model) {
-        this.mode = model;
+        this.model = model;
         this.id = newId(true);
         this.start = Date.now();
     }

@@ -1,6 +1,6 @@
 # Croquet Virtual DOM
 
-last modified on 2021-08-24, or Aug 24th, 2021
+last modified on 2021-10-26, or Oct 26th, 2021
 
 ## Introduction
 Croquet Virtual DOM is an application framework that helps to develop an application based on the Document Object Model and real time collaboration over the Croquet library.
@@ -12,12 +12,12 @@ For basic concepts and examples, please refer to `docs/en/vdom.md.html`.
 There is exactly one external dependency, which is the Croquet Client library. You can simply copy that library to your local directory:
 
 ~~~~~~~~
-# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@1.0.4
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@1.0.5
 ~~~~~~~~
 
-The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@1.0.4/pub/croquet.min.js`.
+The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@1.0.5/pub/croquet.min.js`.
 
-You can also change the `script` tag of your html file to refer to the latest code at `https://unpkg.com/@croquet/croquet`.  The advantage of copying the file to a local directory is that you can develop your application off the internet.
+You can also change the `script` tag of your html file to refer to the latest code at `https://unpkg.com/@croquet/croquet`. The advantage of copying the file to a local directory is that you can develop your application off the internet.
 
 An application can be developed without using npm or additional package manager. You can run the simple http server (written in JavaScript):
 
@@ -27,7 +27,7 @@ An application can be developed without using npm or additional package manager.
 
 and point your browser to an example such as `localhost:8000/apps/text-chat.html`. There is an equivalent server written in Python (server.py), for those who don't install Node.js but has Python.
 
-Alternatively, You can run `npm install`, modify the `import` statments to refer to use the npm package (namely, `@croquet/croquet`), and use a bundler. Howeever, the expander code requires the class and method names are retained. Refer to the Deployment section below for more information.
+Alternatively, you can specify `@croquet/croquet` as dependency in package.json and use a bundler. Howeever, the expander code requires the class and method names are retained. Refer to the Deployment section below for more information.
 
 ## Deployment
 
@@ -42,7 +42,7 @@ When you prefer to create a minified and simplified deployment, you can roll up 
   }
 ~~~~~~~~
 
-run `npm install`, and run the following:
+run `npm install`, and run something the following to make a distributable set of minified files in a directory called `dist`.
 
 ~~~~~~~~
 mkdir -p dist/examples
@@ -54,4 +54,6 @@ npx rollup widgets/widgets.js --config rollup.config.js --file dist/widgets/widg
 cp croquet/croquet-latest.min.js dist/croquet/croquet-latest.min.js
 ~~~~~~~~
 
-to create minified files. in this example, the `dist` directory contains all files you need to copy to a server.
+## Alternative Deployment Scheme
+
+Lately, many apps that use the Croquet Virtual DOM Framework have its own directory. All they need is to load the croquet library and `croquet-virtual-dom.js` from unpkg.com. Please refer to the [description on npmjs.com](https://www.npmjs.com/package/@croquet/virtual-dom).

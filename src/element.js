@@ -1685,6 +1685,19 @@ export class ElementView extends V {
                     i++;
                     newIndex++;
                     continue;
+                } else {
+                    // a new child will be added in front of child;
+                    let {elementId} = newC;
+                    let world = this.model.wellKnownModel("worldModel");
+                    let view = topView.ensureView(new ElementRef(elementId), world);
+                    if (!view.model.topChild) {
+                        this.dom.insertBefore(view.dom, child);
+                        view.parentNode = this;
+                    } else {
+                        topView.dom.insertBefore(view.dom, child);
+                    }
+                    newIndex++;
+                    continue;
                 }
             }
             return;
