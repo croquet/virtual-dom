@@ -1,5 +1,15 @@
 {
-    "name": "croquet-virtual-dom",
+    "name": "@croquet/virtual-dom",
     "author": "Croquet Corporation",
-    "license": "Apache-2.0"
+    "version": "1.0.7",
+    "license": "Apache 2.0 License",
+    "main": "croquet-virtual-dom.min.js",
+    "files": [
+        "croquet-virtual-dom.min.js",
+        "LICENSE"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": ["croquet", "real-time", "collaboration", "framework"]
 }
