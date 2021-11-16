@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
   <script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"></script>
   <script type="module">
+import apiKey from "../apiKey.js";
 import {makeMain, Library} from "../src/croquet-virtual-dom.js";
 
 import {minibrowser} from "../examples/minibrowser.js";
@@ -12,7 +13,7 @@ library.addLibrary("minibrowser", minibrowser);
 
 window.onload = makeMain("minibrowser.beBrowser", {
     appId: "io.croquet.vdom.minibrowser",
-    apiKey: "<your apiKey from croquet.io/keys>",
+    apiKey,
     password: "dummy",
     tps: 0}, library, null, null, true);
   </script>

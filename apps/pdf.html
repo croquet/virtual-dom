@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
   <script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"></script>
   <script type="module">
+import apiKey from "../apiKey.js";
 import {makeMain, Library} from "../src/croquet-virtual-dom.js";
 
 import {pdf} from "../examples/pdf.js";
@@ -15,7 +16,7 @@ library.addLibrary("widgets", widgets);
 window.onload = makeMain("pdf.bePDF", {
     autoSleep: false,
     appId: "io.croquet.vdom.pdf",
-    apiKey: "<your apiKey from croquet.io/keys>",
+    apiKey,
     password: "dummy",
     tps: 0}, library, null, null, true);
   </script>

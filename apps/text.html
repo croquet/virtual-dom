@@ -5,6 +5,7 @@
 
   <script type="text/javascript" charset="UTF-8" src="../croquet/croquet-latest.min.js"></script>
   <script type="module">
+import apiKey from "../apiKey.js";
 import {makeMain, Library} from "../src/croquet-virtual-dom.js";
 
 import {text} from "../examples/text.js";
@@ -14,8 +15,8 @@ library.addLibrary("text", text);
 library.addLibrary("widgets", widgets);
 
 window.onload = makeMain("text.beText", {
-    apiKey: "<your apiKey from croquet.io/keys>",
-    appId: "io.croquet.vdom.text"
+    appId: "io.croquet.vdom.text",
+    apiKey,
     tps: 0,
     password: "dummy",
 }, library, null, null, true);

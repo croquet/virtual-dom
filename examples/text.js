@@ -34,58 +34,92 @@ class TextModel {
             text.setWidth(600);
             text.setViewCode(["text.FrameView", "text.FontLoader"]);
             this.appendChild(text);
+            this.subscribe(text.id, "changed", "triggerPersist");
         }
 
-        this.subscribe(this.id, "save", "TextModel.savePersistentData");
+        this.ensurePersistenceProps();
+    }
+
+    ensurePersistenceProps() {
+        if (!this._get("persistPeriod")) {
+            let period = 1 * 60 * 1000;
+            this._set("persistPeriod", period);
+        }
+        if (this._get("lastPersistTime") === undefined) {
+            this._set("lastPersistTime", 0);
+        }
+
+        if (this._get("persistRequested") === undefined) {
+            this._get("persistRequested", false);
+        }
+    }
+
+    triggerPersist() {
+        let now = this.now();
+        let diff = now - this._get("lastPersistTime");
+        let period = this._get("persistPeriod");
+        // console.log("persist triggered", diff, period);
+        if (diff < period) {
+            if (!this._get("persistRequested")) {
+                // console.log("persist scheduled");
+                this._set("persistRequested", true);
+                this.future(period - diff).call("TextModel", "triggerPersist");
+            }
+            // console.log("persist not ready");
+            return;
+        }
+        this._set("lastPersistTime", now);
+        this._set("persistRequested", false);
+        this.savePersistentData();
     }
 
     loadPersistentData(data) {
-        let text = this.querySelector("#text");
-        if (text) {
+        try {
+            this._delete("loadingPersistentDataErrored");
+            this._set("loadingPersistentData", true);
+            let text = this.querySelector("#text");
             text.load(data);
+        } catch (error) {
+            console.error("error in loading persistent data", error);
+            this._set("loadingPersistentDataErrored", true);
+        } finally {
+            this._delete("loadingPersistentData");
         }
     }
 
     savePersistentData() {
+        if (this._get("loadingPersistentData")) {return;}
+        if (this._get("loadingPersistentDataErrored")) {return;}
+        // console.log("persist data");
+        this._set("lastPersistTime", this.now());
         let text = this.querySelector("#text");
         let top = this.wellKnownModel("modelRoot");
-        if (!text || !top) {return;}
-        let func = () => text.doc.save();
+        let func = () => {
+            let ret = text.doc.save();
+            return ret;
+        };
         top.persistSession(func);
-    }
-}
-
-class TextView {
-    init() {
-        if (!this.loop) {
-            this.loop = true;
-            this.future(60 * 1000).call("TextView", "save");
-        }
-    }
-
-    save() {
-        this.publish(this.model.id, "save");
-        this.future(60 * 1000).call("TextView", "save");
     }
 }
 
 class FontLoader {
     init() {
+        let root = window._root || ".";
         let spec = [
             {name: "OpenSans",
-             url: "./assets/fonts/open-sans-v17-latin-ext_latin-regular.woff2",
+             url: `${root}/assets/fonts/open-sans-v17-latin-ext_latin-regular.woff2`,
              descriptor: {style: "normal", weight: "400"}
             },
             {name: "OpenSans",
-             url: "./assets/fonts/open-sans-v17-latin-ext_latin-italic.woff2",
+             url: `${root}/assets/fonts/open-sans-v17-latin-ext_latin-italic.woff2`,
              descriptor: {style: "italic", weight: "400"}
             },
             {name: "OpenSans",
-             url: "./assets/fonts/open-sans-v17-latin-ext_latin-700.woff2",
+             url: `${root}/assets/fonts/open-sans-v17-latin-ext_latin-700.woff2`,
              descriptor: {style: "normal", weight: "700"}
             },
             {name: "OpenSans",
-             url: "./assets/fonts/open-sans-v17-latin-ext_latin-700italic.woff2",
+             url: `${root}/assets/fonts/open-sans-v17-latin-ext_latin-700italic.woff2`,
              descriptor: {style: "italic", weight: "700"}
             }
         ];
@@ -157,7 +191,7 @@ class WidgetView {
         italicButton.dom.addEventListener("click", (evt) => this.italic(evt));
 
         let target = window.topView.querySelector(`#${this.model._get("text")}`);
-        this.subscribe(target.id, "selectionUpdated", "WidgetView.selectionUpdated");
+        this.subscribe(target.id, "selectionUpdated", "selectionUpdated");
 
         let selection = this.getSelection();
         this.hasBoxSelection = !!(selection && (selection.start !== selection.end));
@@ -331,7 +365,7 @@ class FrameView {
 
             Croquet.Messenger.send("appReady");
             Croquet.Messenger.on("appInfoRequest", () => {
-                Croquet.Messenger.send("appInfo", { appName: "text", label: "text", iconName: "text-fields.svgIcon", urlTemplate: "./apps/text.html?q=${q}" });
+                Croquet.Messenger.send("appInfo", { appName: "text", label: "text", iconName: "text-fields.svgIcon", urlTemplate: "../text/index.html?q=${q}" });
                 });
         }
 
@@ -361,7 +395,6 @@ function beText(parent, _json, persistentData) {
     textModel.classList.add("textmodel");
 
     textModel.setCode("text.TextModel");
-    textModel.setViewCode("text.TextView");
 
     parent.setStyleClasses(`
 
@@ -473,6 +506,6 @@ function beText(parent, _json, persistentData) {
 }
 
 export const text = {
-    expanders: [FontLoader, TextModel, TextView, WidgetModel, WidgetView, FrameView],
+    expanders: [FontLoader, TextModel, WidgetModel, WidgetView, FrameView],
     functions: [beText]
 };
