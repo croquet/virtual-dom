@@ -61,6 +61,7 @@ export class TextElement extends Element {
     pointer-events: none;
 }
         `);
+        this._set("contenteditable", true);
     }
 
     bePartsBinPrototype() {
@@ -151,6 +152,14 @@ export class TextElement extends Element {
 
     set value(text) {
         return this.load(text);
+    }
+
+    set contenteditable(flag) {
+        this._set("contenteditable", flag);
+    }
+
+    get contenteditable() {
+        return this._get("contenteditable");
     }
 }
 
@@ -401,6 +410,7 @@ export class TextView extends ElementView {
     }
 
     simpleInput(text, evt) {
+        if (!this.model._get("contenteditable")) {return false;}
         let user = this.user;
         let selection = this.model.content.selections[this.viewId];
         let style = this.model.styleAt(Math.max(selection ? selection.start - 1 : 0, 0));
@@ -412,6 +422,7 @@ export class TextView extends ElementView {
     }
 
     input(evt) {
+        if (!this.model._get("contenteditable")) {return false;}
         let cEvt = this.newCanonicalizeEvent(evt);
         if (!cEvt) {return false;}
         let user = this.user;
@@ -425,6 +436,7 @@ export class TextView extends ElementView {
 
     keyDown(evt) {
         let cEvt;
+        if (!this.model._get("contenteditable")) {return false;}
         if (evt.key === "Enter") {
             if (this.hiddenInput.value !== "") {
                 this.hiddenInput.value = "";
@@ -662,7 +674,11 @@ export class TextView extends ElementView {
             let caret = this.ensureSelection(k).bar;
 
             if (selection.end === selection.start) {
-                caret.style.removeProperty("visibility");
+                if (this.model._get("contenteditable")) {
+                    caret.style.removeProperty("visibility");
+                } else {
+                    caret.style.setProperty("visibility", "hidden");
+                }
                 let caretRect = this.warota.barRect(selection);
                 caret.style.setProperty("left", caretRect.left + "px");
                 caret.style.setProperty("top", caretRect.top + "px");

@@ -183,6 +183,10 @@ class View {
         return Date.now() - this.start;
     }
 
+    extrapolatedNow() {
+        return Date.now() - this.start;
+    }
+
     future(tOffset = 0) {
         return new FutureHandler(tOffset).setup(this);
     }
