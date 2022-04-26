@@ -19,7 +19,14 @@ The `-L` option specifies to follow redirection. You may copy the file from `htt
 
 You can also change the `script` tag of your html file to refer to the latest code at `https://unpkg.com/@croquet/croquet`. The advantage of copying the file to a local directory is that you can develop your application off the internet.
 
-For those example applications to run, you need to obtain the API key from croquet.io/keys. Once you create an API key, replace `"<put your apiKey from croquet.io/keys>"` line in apiKey.js with it.
+For those example applications to run, you need to add your Croquet API key to `apiKey.js`
+   Obtain your apiKey from [Croquet Dev Portal](croquet.io/keys), create `apiKey.js` by copying `apiKey.js-example` to `apiKey.js`, and insert the key into it.
+
+   ```JavaScript
+   const apiKey = "<insert your apiKey from croquet.io/keys>";
+   export default apiKey;
+   ```
+
 
 An application can be developed without using npm or additional package manager. You can run the simple http server (written in JavaScript):
 

@@ -1,1 +1,4 @@
-/croquet
+/croquet/*.js
+/dist
+apiKey.js
+/node_modules
