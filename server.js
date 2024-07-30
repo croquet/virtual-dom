@@ -22,23 +22,29 @@ let port = 8000,
 port = process.argv[2] ? parseInt(process.argv[2], 0) : port;
 
 function fileTypes(name) {
+    if (name.endsWith(".mjs")) {
+        return "application/javascript";
+    }
     if (name.endsWith(".js")) {
-       return "application/javascript";
+        return "application/javascript";
     }
     if (name.endsWith(".css")) {
-       return "text/css";
+        return "text/css";
     }
     if (name.endsWith(".png")) {
-       return "image/png";
+        return "image/png";
     }
     if (name.endsWith(".svg")) {
-       return "image/svg+xml";
+        return "image/svg+xml";
     }
     if (name.endsWith(".html")) {
-       return "text/html";
+        return "text/html";
     }
     if (name.endsWith(".pdf")) {
-       return "application/pdf";
+        return "application/pdf";
+    }
+    if (name.endsWith(".wasm")) {
+        return "application/wasm";
     }
     return "application/octet-stream";
 }
@@ -59,6 +65,7 @@ function header(type) {
 }
 
 function get(request, response, pathname) {
+    if (pathname.endsWith('/')) {pathname += 'index.html';}
     let filePath = path.join(currentDir, pathname);
     fs.stat(filePath, (err, stats) => {
         if (err) {
@@ -111,10 +118,95 @@ function get(request, response, pathname) {
     });
 }
 
+function put(request, response, pathname) {
+    let filePath = path.join(currentDir, pathname);
+    let buf;
+    request.on('data', (chunk) => {
+        try {
+            if (!buf) {
+                buf = chunk;
+            } else {
+                buf = Buffer.concat([buf, chunk]);
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    });
+
+    request.on('end', () => {
+        let dirname = path.dirname(filePath);
+        fs.mkdir(dirname, { recursive: true }, (err) => {
+            if (err) {
+                response.statusCode = 404;
+                response.setHeader('Content-Type', 'text/html');
+                response.end(`<h1>Cannot Create Directory</h1>\n<p>${dirname}</p>`);
+                return;
+            }
+
+            fs.writeFile(filePath, buf, (writeErr) => {
+                if (writeErr) {
+                    response.statusCode = 404;
+                    response.setHeader('Content-Type', 'text/html');
+                    response.end(`<h1>Cannot Save File</h1>\n<p>${filePath}</p>`);
+                    return;
+                }
+                console.log(filePath + ' saved (' + buf.length + ')');
+
+                response.statusCode = 200;
+                response.setHeader('Content-Type', 'text/plain');
+                response.end('');
+            });
+        });
+    });
+}
+
+function propfind(request, response, pathname) {
+    let dirname = path.dirname(pathname);
+    fs.stat(dirname, (err, stats) => {
+        if (err) {
+            console.log('error', err);
+            response.statusCode = 404;
+            response.setHeader('Content-Type', 'text/html');
+            response.end(`<h1>Directory Not found</h1>\n<p>${dirname}</p>`);
+            return;
+        }
+        if (!stats.isDirectory()) {
+            response.statusCode = 404;
+            response.setHeader('Content-Type', 'text/html');
+            response.end(`<h1>Directory Not found</h1>\n<p>${dirname}</p>`);
+            return;
+        }
+
+        fs.readdir(dirname, (readErr, list) => {
+            if (readErr) {
+                response.statusCode = 404;
+                response.setHeader('Content-Type', 'text/html');
+                response.end(`<h1>Cannot Read Directory</h1>\n<p>${dirname}</p>`);
+                return;
+            }
+            response.statusCode = 200;
+            response.setHeader('Content-Type', 'text/plain');
+            response.end(JSON.stringify(list));
+        });
+    });
+}
+
 function handleRequest(request, response) {
     let urlObject = urlParser.parse(request.url, true);
     let pathname = decodeURIComponent(urlObject.pathname);
     let method = request.method;
+
+    if (method === "GET" && pathname.endsWith("/")) {
+        pathname += "index.html";
+    }
+
+    let filePath = path.join(currentDir, pathname);
+    let normalized = path.dirname(path.normalize(filePath));
+    if (normalized.slice(0, currentDir.length) !== currentDir) {
+        response.writeHead(403, {});
+        response.end();
+        return;
+    }
 
     console.log(`[${(new Date()).toUTCString()}] "${method} ${pathname}"`);
     if (method === 'GET') {
@@ -134,7 +226,7 @@ function handleRequest(request, response) {
 http.createServer(handleRequest).listen(port);
 
 require('dns').lookup(require('os').hostname(), (err, addr, _fam) => {
-    console.log(`Running at http://${addr}${((port === 80) ? '' : ':')}${port}/`);
+    console.log(`Running at http://${addr === undefined ? "localhost" : addr}${((port === 80) ? '' : ':')}${port}/`);
 });
 
 console.log('The simple server has started...');
