@@ -114,6 +114,11 @@ function get(request, response, pathname) {
 function handleRequest(request, response) {
     let urlObject = urlParser.parse(request.url, true);
     let pathname = decodeURIComponent(urlObject.pathname);
+    if (path.normalize(decodeURIComponent(urlObject.pathname)) !== decodeURIComponent(urlObject.pathname)) {
+        response.statusCode = 403;
+        response.end();
+        return;
+    }
     let method = request.method;
 
     console.log(`[${(new Date()).toUTCString()}] "${method} ${pathname}"`);
