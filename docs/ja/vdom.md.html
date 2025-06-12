@@ -70,10 +70,10 @@ Croquet Virtual DOM Frameworkでは、実際のDOMのインターフェイスを
 まずは、Croquet SDKのファイルを`croquet`というディレクトリにコピーする。
 
 ~~~~~~~~
-# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@0.5.0
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://cdn.jsdelivr.net/npm/@croquet/croquet@1
 ~~~~~~~~
 
-`-L`オプションはリダイレクトに従うと言うフラグであり、`https://unpkg.com/@croquet/croquet@0.5.0/pub/croquet.min.js`からコピーしても良い。
+`-L`オプションはリダイレクトに従うと言うフラグであり、`https://cdn.jsdelivr.net/npm/@croquet/croquet@1/pub/croquet.min.js`からコピーしても良い。
 
 トップディレクトリにあるserver.jsをターミナルから`node`を使用して実行する。
 
@@ -270,7 +270,7 @@ window.onload = makeMain("counter.beCounter", {autoSleep: false, appId: "io.croq
 ~~~~~~~~ HTML
   &lt;script type="text/javascript" charset="UTF-8" src="croquet/croquet-latest.min.js">&lt;/script&gt;
 ~~~~~~~~
-Croquetライブラリをロードする。ここでは`croquet`ディレクトリにこのファイルがコピーされていることを仮定しているが、安定版を`https://unpkg.com/@croquet/croquet@0.5.0`から読みこむようにしても良い。
+Croquetライブラリをロードする。ここでは`croquet`ディレクトリにこのファイルがコピーされていることを仮定しているが、安定版を`https://cdn.jsdelivr.net/npm/@croquet/croquet@1`から読みこむようにしても良い。
 
 ~~~~~~~~ JavaScript
 import {makeMain, Library} from "./src/framework.js";
@@ -565,8 +565,8 @@ export const key = 'abcd0123-abcd-aaaa-0000-012312012abc';
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style></script><script src="https://casual-effects.com/markdeep/latest/markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>
 
-<script src="https://unpkg.com/@croquet/croquet"></script>
-<script src="https://unpkg.com/page-synchronizer@1.0.3"></script>
+<script src="https://cdn.jsdelivr.net/npm/@croquet/croquet@1.0.5"></script>
+<script src="https://cdn.jsdelivr.net/npm/page-synchronizer@1.0.3"></script>
 <script type="text/javascript">
 if (window.location.search !== "") {
     SimplePageView.start({

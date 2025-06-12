@@ -1,6 +1,6 @@
 # Croquet Virtual DOM
 
-last modified on 2021-10-26, or Oct 26th, 2021
+last modified on 2025-06-12
 
 ## Introduction
 Croquet Virtual DOM is an application framework that helps to develop an application based on the Document Object Model and real time collaboration over the Croquet library.
@@ -12,12 +12,12 @@ For basic concepts and examples, please refer to `docs/en/vdom.md.html`.
 There is exactly one external dependency, which is the Croquet Client library. You can simply copy that library to your local directory:
 
 ~~~~~~~~
-# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://unpkg.com/@croquet/croquet@1.0.5
+# mkdir -p croquet; curl -L -o croquet/croquet-latest.min.js https://cdn.jsdelivr.net/npm/@croquet/croquet
 ~~~~~~~~
 
-The `-L` option specifies to follow redirection. You may copy the file from `https://unpkg.com/@croquet/croquet@1.0.5/pub/croquet.min.js`.
+The `-L` option specifies to follow redirection. You may copy the file from `https://cdn.jsdelivr.net/npm/@croquet/croquet@1/pub/croquet.min.js`.
 
-You can also change the `script` tag of your html file to refer to the latest code at `https://unpkg.com/@croquet/croquet`. The advantage of copying the file to a local directory is that you can develop your application off the internet.
+You can also change the `script` tag of your html file to refer to the latest code at `https://cdn.jsdelivr.net/npm/@croquet/croquet`. The advantage of copying the file to a local directory is that you can develop your application off the internet.
 
 For those example applications to run, you need to obtain the API key from croquet.io/keys. Once you create an API key, replace `"<put your apiKey from croquet.io/keys>"` line in apiKey.js with it.
 
@@ -58,4 +58,4 @@ cp croquet/croquet-latest.min.js dist/croquet/croquet-latest.min.js
 
 ## Alternative Deployment Scheme
 
-Lately, many apps that use the Croquet Virtual DOM Framework have its own directory. All they need is to load the croquet library and `croquet-virtual-dom.js` from unpkg.com. Please refer to the [description on npmjs.com](https://www.npmjs.com/package/@croquet/virtual-dom).
+Lately, many apps that use the Croquet Virtual DOM Framework have its own directory. All they need is to load the croquet library and `croquet-virtual-dom.js` from jsdelivr. Please refer to the [description on npmjs.com](https://www.npmjs.com/package/@croquet/virtual-dom).

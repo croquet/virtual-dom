@@ -1,7 +1,7 @@
 {
     "name": "@croquet/virtual-dom",
     "author": "Croquet Corporation",
-    "version": "1.0.8",
+    "version": "1.0.10",
     "license": "Apache 2.0 License",
     "main": "croquet-virtual-dom.min.js",
     "files": [

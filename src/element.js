@@ -22,6 +22,8 @@ import {stringify, parse} from "./stable-stringify.js";
 
 let setFontLastLoadedTime = null;
 
+let knownElements = {};
+
 // let now = 0;
 
 let isProxy = Symbol("isProxy");
@@ -281,7 +283,7 @@ export class Element extends M {
 
     createElement(cls) {
         if (typeof cls === "string") {
-            cls = Element.knownElements[cls.toLowerCase()];
+            cls = knownElements[cls.toLowerCase()];
         }
         if (!cls) {
             cls = Element;
@@ -2110,7 +2112,7 @@ export function start(sessionName = "elem", modelClass, viewClass, parameters = 
 }
 
 export function setKnownElements(obj) {
-    Element.knownElements = obj;
+    knownElements = obj;
 }
 
 export function setFontLastLoadedTimeFunction(func) {
