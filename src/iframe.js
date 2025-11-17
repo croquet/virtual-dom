@@ -53,11 +53,17 @@ export class IFrameView extends ElementView {
         super.apply(time, elem, world);
         let parent = this.iframe.parentNode;
         let refNode = this.iframe.nextSibling;
+        let suppressSpec = this.model._get("suppress");
+        let suppress = false;
+        if (suppressSpec) {
+            suppress = this.call(...suppressSpec)
+        }
 
         let updated = attributes.filter((k) => {
             let value = elem._get(k);
             return this._lastValues[k] !== value || (k === "src" && typeof value === "string");
         }).map((k) => [k, elem._get(k)]);
+
 
         // Remove the actual iframe element temporarily so that setting src does not
         // mutate browser history
@@ -68,6 +74,7 @@ export class IFrameView extends ElementView {
             }
             updated.forEach(([k, value]) => {
                 this._lastValues.set(k, value);
+                if (k === "src" && suppress) {return;}
                 this.iframe[k] = value;
             });
         }  catch (e) {
